@@ -94,7 +94,7 @@ CLOSED_LABELS = set(LABEL_TO_SLICE)
 LIST_FIELDS = {"witnesses", "deviations"}
 CITATION_FIELDS = ["exemplar", "witnesses", "deviations"]  # exemplar: scalar; other two: list
 REQUIRED_FIELDS = ["label", "statement", "exemplar", "witnesses", "guard", "unsafe_when"]
-KNOWN_FIELDS = set(REQUIRED_FIELDS) | {"deviations", "stack"}
+KNOWN_FIELDS = set(REQUIRED_FIELDS) | {"deviations", "stack", "human_approved"}
 
 
 def stack_allows(record, be, fe):
@@ -248,7 +248,7 @@ def validate_records(records, section_lines):
 
         unknown = [k for k in r if k != "id" and k not in KNOWN_FIELDS]
         for k in unknown:
-            yield "invalid", f"{loc}: unknown field `{k}` — not one of the nine defined fields, a typo? (model/FORMAT.md §3)"
+            yield "invalid", f"{loc}: unknown field `{k}` — not one of the ten defined fields, a typo? (model/FORMAT.md §3)"
 
         for field in REQUIRED_FIELDS:
             value = r.get(field)
@@ -259,9 +259,17 @@ def validate_records(records, section_lines):
         if label and label not in CLOSED_LABELS:
             yield "invalid", f"{loc}: label `{label}` is not one of the 15 closed labels (model/FORMAT.md §4)"
 
+        human_approved_raw = r.get("human_approved")
+        human_approved = False
+        if human_approved_raw is not None:
+            v = human_approved_raw.strip().lower()
+            if v not in ("true", "false"):
+                yield "invalid", f"{loc}: `human_approved` must be exactly `true` or `false`, not `{human_approved_raw}` (model/FORMAT.md §3d)"
+            human_approved = v == "true"
+
         witnesses = r.get("witnesses") or []
-        if r.get("witnesses") is not None and len(witnesses) < 2:
-            yield "invalid", f"{loc}: `witnesses` has {len(witnesses)} entr{'y' if len(witnesses) == 1 else 'ies'}, needs at least 2 — a record with one witness is one piece of code with an opinion attached, not a convention (model/FORMAT.md §3)"
+        if r.get("witnesses") is not None and len(witnesses) < 2 and not human_approved:
+            yield "invalid", f"{loc}: `witnesses` has {len(witnesses)} entr{'y' if len(witnesses) == 1 else 'ies'}, needs at least 2 — a record with one witness is one piece of code with an opinion attached, not a convention, unless `human_approved: true` marks it as a person's own judgment call rather than an agent's (model/FORMAT.md §3d)"
 
         for field in CITATION_FIELDS:
             raw = r.get(field)

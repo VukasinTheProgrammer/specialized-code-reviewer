@@ -182,4 +182,26 @@ else
   fail=1
 fi
 
+# ---- D10 (week 9): `human_approved: true` on a record waives the witnesses
+# >= 2 rule (model/FORMAT.md §3d) — the `learn` skill's whole reason to exist
+# is a human vouching for a real single-witness pattern an unattended agent
+# would otherwise have to drop. Two packs, structurally identical down to the
+# `id` slug's suffix, differing only in that one field — proves the flag
+# itself gates the behavior, not merely that "some one-witness pack now
+# passes" for an unrelated reason. bad-one-witness.md already exists and is
+# exercised elsewhere in this suite by inference (it's a fixture, not wired
+# into a check above) — assert it directly here as the negative case. ----
+D10_APPROVED="$(bash "$ROOT/model/validate-pack.sh" "$PACKS/good-human-approved-one-witness.md" "$ROOT" 2>&1)"
+D10_APPROVED_EXIT=$?
+D10_UNAPPROVED="$(bash "$ROOT/model/validate-pack.sh" "$PACKS/bad-one-witness.md" "$ROOT" 2>&1)"
+D10_UNAPPROVED_EXIT=$?
+if [ "$D10_APPROVED_EXIT" = 0 ] && [ "$D10_UNAPPROVED_EXIT" != 0 ]; then
+  echo "ok   D10: human_approved:true waives witnesses>=2 (pass), the same shape without it still fails"
+else
+  echo "FAIL D10: expected approved-pack exit 0 (got $D10_APPROVED_EXIT) and unapproved-pack exit != 0 (got $D10_UNAPPROVED_EXIT)"
+  echo "       approved output:"; printf '%s\n' "$D10_APPROVED" | sed 's/^/         /'
+  echo "       unapproved output:"; printf '%s\n' "$D10_UNAPPROVED" | sed 's/^/         /'
+  fail=1
+fi
+
 exit "$fail"

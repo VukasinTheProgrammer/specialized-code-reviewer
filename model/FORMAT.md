@@ -90,6 +90,7 @@ Fields, and who needs each one:
 | `unsafe_when` | yes | What would make the same shape a real defect. Mirrors the ledger's two-halves dismissal rule (`eval/review-corrections.md`); without it a record silences the genuine version of its own pattern. |
 | `deviations` | no | Known non-conforming sites, already triaged. Empty is normal. |
 | `stack` | no | `be` / `fe` / unset. Feeds the existing stack gate — a frontend record never fires on a backend-only diff. |
+| `human_approved` | no | Exactly `true` or `false` if present at all — see §3d. Waives the `witnesses` ≥ 2 rule; nothing else. |
 
 An unknown field name is a typo, not a new field, and `id` must match the
 slug grammar (`label.short-name`, lowercase, `.`/`-` only) and be unique
@@ -99,6 +100,38 @@ must resolve: the file exists, and a `:line` (or `:line-line2`) is within
 the file's actual line count — the same bounds check `build-artifacts.sh`
 already runs for staleness, applied here at authoring time instead of
 diff-review time.
+
+## §3d — `human_approved`: a person's judgment stands in for the second witness
+
+Week 9. `generate-domain-pack` runs unattended — nobody is present to vouch
+for a pattern the agent could only find once, so a record under two
+witnesses is dropped rather than trusted on an agent's own say-so (§3's own
+reasoning: "one piece of code with an opinion attached, not a convention").
+The `learn` skill (`.claude/skills/learn/SKILL.md`) exists specifically to
+put a person in that loop — proposing candidates for a human to accept,
+edit, or reject before anything is written. Without `human_approved`, that
+review step couldn't do anything a fully-automated run doesn't already do:
+a real, single-witness pattern the reviewer has personally judged sound
+still hit the same ≥2 gate and got dropped regardless of the review.
+
+`human_approved: true` on a record waives §3's `witnesses` ≥ 2 requirement
+— a record may carry as few as one real witness (or, in principle, none,
+though a record with zero evidence beyond its exemplar is a thin case a
+reviewer should think twice about approving). It waives nothing else:
+`exemplar` and every listed `witnesses` citation still must resolve
+against the real file (§3's own citation-bounds check), the label must
+still be one of the closed 15, the `id` slug rule is unchanged. This field
+lowers the evidence bar for one specific record a person actually looked
+at; it does not loosen validation generally, and it is never set by an
+agent on its own authority — only by a human's explicit accept during a
+`learn` review, or by a human hand-editing the pack directly with the same
+intent.
+
+`human_approved: false` (or omitting the field) is the default and behaves
+exactly as before this section existed — §3's ≥2 rule applies normally.
+The field must be exactly `true` or `false` when present at all; any other
+value is rejected as a typo, not silently ignored (same doctrine as every
+other field-value check in this file).
 
 ## §3c — The matcher: which record governs a changed file
 
