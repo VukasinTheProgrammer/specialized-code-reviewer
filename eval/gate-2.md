@@ -67,9 +67,10 @@ STOP       precision < 60%  OR deviates_from acceptance well below overall
            # the routing is manufacturing findings, not proving them
 
 BETWEEN    route only the records that scored well in stratum A.
-           see eval/week-8-detail's "between path is per-record, not
-           global" branch — mark each record routable or not based on
-           its own performance, don't weaken the routing rule globally.
+           see the plan's own week-8 detail artifact ("Week Eight: Two
+           Numbers, Not One"), section "The between path is per-record,
+           not global" — mark each record routable or not based on its
+           own performance, don't weaken the routing rule globally.
 ```
 
 These are illustrative-shaped the same way the plan's own example was —
