@@ -27,10 +27,7 @@ HEADINGS_FILE="$SCRIPT_DIR/pack-headings.txt"
 # so an explicit second arg overrides the default, and build-artifacts.sh
 # passes $ROOT (the repo actually under review) so this stays correct there
 # too, not just when called standalone on this repo's own pack.
-PACK_REPO_ROOT="${2:-}"
-if [ -z "$PACK_REPO_ROOT" ]; then
-  PACK_REPO_ROOT="$(cd "$SCRIPT_DIR" && git rev-parse --show-toplevel 2>/dev/null)"
-fi
+PACK_REPO_ROOT="${2:-$(cd "$SCRIPT_DIR" && git rev-parse --show-toplevel 2>/dev/null)}"
 
 # missing_pack_headings() — shared with build-artifacts.sh, not duplicated
 # (see model/pack-heading-check.sh for why).

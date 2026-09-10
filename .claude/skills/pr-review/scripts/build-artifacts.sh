@@ -44,7 +44,7 @@ BASE_ARG="${1:-dev}"
 # design-partner case) — same reasoning model/validate-pack.sh's own
 # SCRIPT_DIR already applies, just missing here until now.
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-MODEL_DIR="$(cd "$SCRIPT_DIR/../../../.." && pwd)/model"
+MODEL_DIR="$(cd "$SCRIPT_DIR" && git rev-parse --show-toplevel)/model"
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "error: not inside a git repository" >&2; exit 2; }
 cd "$ROOT"
 PACK="${PR_REVIEW_PACK:-model/pr-review-domain.md}"

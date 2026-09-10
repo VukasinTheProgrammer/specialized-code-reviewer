@@ -92,12 +92,7 @@ Non-zero exit on either → the write introduced a format problem Step 5's citat
 
 ## Step 8 — Remove the worktree (mandatory, verified, never skipped)
 
-```bash
-git worktree remove --force <tmp>
-git worktree list | grep -F "<tmp>" && echo "FAILED: <tmp> still listed" || echo "worktree removed"
-```
-
-Same as `generate-domain-pack` Step 5 — run this even if Steps 2-6 failed partway.
+Same command, same `--force` reasoning (an untracked `graphify-out/` from Step 1 blocks a plain remove), same "run even on a partial failure" rule as `generate-domain-pack` Step 5 — see that step for why, rather than restating it here to drift out of sync with it. Run it even if Steps 2-6 failed partway.
 
 ## Timing, per the plan's own "done when"
 
