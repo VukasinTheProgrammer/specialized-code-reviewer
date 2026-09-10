@@ -65,8 +65,12 @@ else
 fi
 
 # ---- D3: a Brief-probes runtime error (bash -n can't see it — bad -n only
-# catches syntax, not "command not found") must set BRIEF_DEGRADED=1 ----
-OUT="$(PR_REVIEW_PACK="$PACKS/bad-brief-runtime-err.md" PR_REVIEW_NO_GRAPH=1 \
+# catches syntax, not "command not found") must set BRIEF_DEGRADED=1.
+# PR_REVIEW_EVAL_BRIEF_PROBES=1 because this pack comes via $PR_REVIEW_PACK
+# and its Brief probes block is deliberately-broken test content we wrote
+# and have read — the D12 block below covers the opposite case (an
+# untrusted override pack's block must NOT run). ----
+OUT="$(PR_REVIEW_PACK="$PACKS/bad-brief-runtime-err.md" PR_REVIEW_EVAL_BRIEF_PROBES=1 PR_REVIEW_NO_GRAPH=1 \
   bash .claude/skills/pr-review/scripts/build-artifacts.sh base 2>/dev/null | grep '^OUT=' | cut -d= -f2)"
 require_out "$OUT"
 if grep -qxF 'BRIEF_DEGRADED=1' "$OUT/run.env" 2>/dev/null; then
@@ -226,6 +230,47 @@ else
   echo "FAIL D11: expected zero-witness pack exit 0 (got $D11_ZERO_EXIT) and wrong-case pack exit != 0 (got $D11_CASE_EXIT)"
   echo "       zero-witness output:"; printf '%s\n' "$D11_ZERO" | sed 's/^/         /'
   echo "       wrong-case output:"; printf '%s\n' "$D11_CASE" | sed 's/^/         /'
+  fail=1
+fi
+
+# ---- D12 (week 10): the Brief probes `eval` is arbitrary shell from a
+# markdown file — an accepted risk only while the pack's author is the one
+# running it (future-improvements/week-12-remove-brief-probes-eval.md).
+# Phase 3's cold-onboarding test breaks that assumption: a fresh operator
+# runs against a partner pack an agent generated over a codebase nobody
+# read. So a pack supplied via $PR_REVIEW_PACK must NOT have its Brief
+# probes block eval'd unless the caller opts in with
+# PR_REVIEW_EVAL_BRIEF_PROBES=1. bad-brief-side-effect.md's block writes an
+# observable marker file; run it untrusted and assert the marker never
+# appears and brief.txt is still valid (presence-only fallback). ----
+D12_OUT="$(PR_REVIEW_PACK="$PACKS/bad-brief-side-effect.md" PR_REVIEW_NO_GRAPH=1 \
+  bash .claude/skills/pr-review/scripts/build-artifacts.sh base 2>/dev/null | grep '^OUT=' | cut -d= -f2)"
+require_out "$D12_OUT"
+if [ ! -e "$D12_OUT/BRIEF_PROBES_EXECUTED" ] \
+  && grep -qxF 'BRIEF_PROBES_TRUSTED=0' "$D12_OUT/run.env" 2>/dev/null \
+  && grep -q '^migrations:' "$D12_OUT/brief.txt" 2>/dev/null; then
+  echo "ok   D12: an untrusted \$PR_REVIEW_PACK pack's Brief probes block is not eval'd; brief.txt falls back cleanly"
+else
+  echo "FAIL D12: untrusted pack's Brief probes block ran, or fallback brief.txt is malformed"
+  [ -e "$D12_OUT/BRIEF_PROBES_EXECUTED" ] && echo "       marker file WAS created — block executed"
+  cat "$D12_OUT/run.env" 2>/dev/null | grep BRIEF | sed 's/^/       /'
+  cat "$D12_OUT/brief.txt" 2>/dev/null | sed 's/^/       /'
+  fail=1
+fi
+
+# ---- D12b: the same pack WITH PR_REVIEW_EVAL_BRIEF_PROBES=1 does run the
+# block — proves the opt-in flag is the thing that gates it, not some
+# unrelated property of the pack. (Marker is written into the throwaway
+# repo's own $OUT under .git/, cleaned up with $TMP by the suite's trap.) ----
+D12B_OUT="$(PR_REVIEW_PACK="$PACKS/bad-brief-side-effect.md" PR_REVIEW_EVAL_BRIEF_PROBES=1 PR_REVIEW_NO_GRAPH=1 \
+  bash .claude/skills/pr-review/scripts/build-artifacts.sh base 2>/dev/null | grep '^OUT=' | cut -d= -f2)"
+require_out "$D12B_OUT"
+if [ -e "$D12B_OUT/BRIEF_PROBES_EXECUTED" ] \
+  && grep -qxF 'BRIEF_PROBES_TRUSTED=1' "$D12B_OUT/run.env" 2>/dev/null; then
+  echo "ok   D12b: PR_REVIEW_EVAL_BRIEF_PROBES=1 opts the same pack back in — the flag is the gate"
+else
+  echo "FAIL D12b: opt-in flag did not enable eval for the override pack"
+  cat "$D12B_OUT/run.env" 2>/dev/null | grep BRIEF | sed 's/^/       /'
   fail=1
 fi
 
