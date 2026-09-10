@@ -1,0 +1,73 @@
+{
+  "sample_size": 20,
+  "stratum_a_governed": {
+    "n": 7,
+    "correct": 2,
+    "wrong_record": 1,
+    "false_governance": 4,
+    "precision_all": 0.2857,
+    "strong": {"n": 4, "correct": 2, "wrong_record": 0, "false_governance": 2, "precision": 0.5},
+    "weak": {"n": 3, "correct": 0, "wrong_record": 1, "false_governance": 2, "precision": 0.0}
+  },
+  "stratum_b_new": {
+    "n": 13,
+    "missed": 0,
+    "correct_null": 13
+  },
+  "recall": 1.0,
+  "recall_caveat": "0 missed is against the blind labels as frozen, not a re-audited second pass over all 13 stratum-B units — the same 2-minute-per-unit constraint that produced 2 confirmed labeller misses in stratum A could plausibly also under-report missed governance in stratum B. Not re-audited (out of Wednesday's scope); treat 100% recall as optimistic, not confirmed.",
+  "errors_on_unsure_units": {"total_errors": 5, "on_unsure": 4, "fraction": 0.8},
+  "per_unit_taxonomy": [
+    {
+      "id": "u-02", "file": ".claude/skills/pr-review/scripts/validate-pack.sh",
+      "outcome": "correct", "strength": "strong",
+      "record": "control-flow.no-errexit-for-collect-all-findings"
+    },
+    {
+      "id": "u-15", "file": "tests/run-integration.sh",
+      "outcome": "correct", "strength": "strong",
+      "record": "contract.upstream-claim-reverified"
+    },
+    {
+      "id": "u-07", "file": ".claude/skills/pr-review/scripts/build-artifacts.sh",
+      "outcome": "false_governance", "strength": "strong",
+      "tool_record": "control-flow.no-errexit-for-collect-all-findings",
+      "my_label": null, "confidence": "unsure",
+      "audit_verdict": "likely_labeller_miss",
+      "audit_note": "Diff adds `VALIDATE_OUT=\"$(bash \"$VALIDATOR\" \"$PACK\" 2>&1)\"; if [ $? = 1 ]; then PACK_INVALID=1; STALE=1` to a collect-all-findings script — an explicitly-guarded new risky command, exactly the shape the record's own guard text describes ('every risky command... explicitly checked... rather than left to set -e'). On audit this looks like a correct governed call that the 2-minute blind label under-called, not a matcher defect. Note: governed does not imply a violation — this diff follows the convention, it doesn't break it."
+    },
+    {
+      "id": "u-09", "file": ".claude/skills/pr-review/scripts/validate-pack.sh",
+      "outcome": "false_governance", "strength": "strong",
+      "tool_record": "contract.script-header-documents-interface",
+      "my_label": null, "confidence": "sure",
+      "audit_verdict": "genuinely_ambiguous",
+      "audit_note": "Diff reworks the header comment's prose and adds §-citations to error messages, but doesn't touch the usage:/exit-codes lines the record's guard specifically names as the guarded content. A strict reading of the guard says false governance (the unsafe_when trigger — a new required arg or exit code — isn't present); a looser reading ('the header comment block' broadly) makes the call defensible. The only one of the 5 marked 'sure' by the blind labeller, which on this audit looks less certain than that confidence suggested — worth flagging as an overconfident call on a genuinely fuzzy guard boundary, distinct from the other 4 (which were marked unsure and mostly turned out to be clean misses)."
+    },
+    {
+      "id": "u-11", "file": ".claude/skills/pr-review/scripts/validate-pack.sh",
+      "outcome": "wrong_record", "strength": "weak",
+      "tool_record": "duplication.shared-matching-logic-sourced-not-copied",
+      "my_label": "control-flow.no-errexit-for-collect-all-findings", "confidence": "unsure",
+      "audit_verdict": "two_records_genuinely_apply",
+      "audit_note": "This is the file's original creation (week 1): a hand-written heading-check loop duplicating build-artifacts.sh's own inline loop at the time (matches duplication.shared-matching-logic-sourced-not-copied's unsafe_when almost verbatim), AND a set -u/fail()-accumulate pattern (matches control-flow.no-errexit-for-collect-all-findings). Both records are honestly applicable to the same diff — this isn't a matcher bug or a record-quality bug, it's the single-record-per-unit classification model forcing one pick where a real reviewer would cite both. Not covered by the plan's own taxonomy table; noted as its own shape."
+    },
+    {
+      "id": "u-13", "file": "tests/run.sh",
+      "outcome": "false_governance", "strength": "weak",
+      "tool_record": "validation.git-root-guard",
+      "my_label": null, "confidence": "unsure",
+      "audit_verdict": "confirmed_labeller_miss",
+      "audit_note": "Diff is `ROOT=\"$(git rev-parse --show-toplevel)\"` with no guard at all right after — verbatim the record's unsafe_when trigger. This is the exact file and line Thursday's dogfooding run (eval/runs/w7/e01-monday.json finding 2) later reported as a real, evidence-backed deviates_from finding. The tool's classification here was unambiguously correct; the blind label missed it."
+    },
+    {
+      "id": "u-14", "file": ".claude/skills/generate-domain-pack/SKILL.md",
+      "outcome": "false_governance", "strength": "weak",
+      "tool_record": "contract.upstream-claim-reverified",
+      "my_label": null, "confidence": "unsure",
+      "audit_verdict": "genuinely_ambiguous",
+      "audit_note": "Diff is prose instructing a human/agent to check run.env's PACK_STALE flag downstream rather than trust the pack-write step's own success — the same discipline the record describes, but expressed as documentation rather than code that does it. Defensible either way depending on whether a doc that specifies a contract counts as 'governed' by that contract's record; not a clean tool error."
+    }
+  ],
+  "summary": "Of the 5 raw disagreements against the frozen blind labels, close audit found 2 confirmed labeller misses (u-07, u-13 — tool was right), 2 genuinely ambiguous guard-boundary calls (u-09, u-14), and 1 structural single-record-per-unit limitation (u-11) rather than a clean matcher or record defect. No disagreement audited as a clear-cut classifier bug. The raw 50% strong-precision score understates what a careful read of the same 4 disagreements shows."
+}
