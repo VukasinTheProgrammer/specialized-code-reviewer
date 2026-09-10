@@ -101,3 +101,71 @@ move on rather than deliberate into an argument.
 Thresholds and labelling rule committed. Blind sheet and key built,
 sheet handed to a fresh session for Tuesday's labelling. Key stays
 closed until that session reports its labels back.
+
+---
+
+## Decision, dated 2026-09-10
+
+Full numbers and taxonomy: `eval/week-8-report.md`. This section holds
+only the gate decision itself, against the thresholds above as written.
+
+**CONTINUE — not met.** `precision (strong) = 50%` misses the 85% bar
+by a wide margin, and `nothing accepted in week 5 arm B was lost` is
+independently false (2 clean losses, both ordinary sweep findings —
+`tests/run-integration.sh:6`, `build-artifacts.sh:14`). Two of three
+CONTINUE clauses fail; `deviates_from` acceptance (100% ≥ 85.7%) is the
+only one that clears.
+
+**STOP — the raw number fires it, the taxonomy contradicts what it
+would mean.** `precision (strong) = 50% < 60%` literally satisfies
+STOP's clause. But STOP's own stated reason — "the routing is
+manufacturing findings, not proving them" — is exactly what
+Wednesday's taxonomy pass checked for, and found no evidence of:
+**zero of the 5 raw disagreements audited as a clear-cut classifier
+defect.** Two are confirmed labeller misses (the tool was right), two
+are genuinely ambiguous guard-boundary calls, one is a structural
+single-record-per-unit limitation. `deviates_from` acceptance sitting
+at 100% is the sharpest evidence against "manufacturing" — routing's
+actual product effect, everywhere it fired, produced only real,
+accepted findings. A STOP decided on the raw number alone would say
+something the deeper read doesn't support.
+
+**Decision: BETWEEN.** Per the plan's own framing, this gate's most
+likely outcome — and the written mechanism is explicit: mark each
+record routable or not by its own stratum-A performance, not a global
+confidence knob.
+
+Applying it to the actual data: **every record in stratum A resolved,
+on audit, to either a clean hit or a defensible/labeller-miss
+disagreement — none resolved to a confirmed bad record.** There is no
+record in this sample whose own performance argues for excluding it.
+So the practical form of BETWEEN this time is **keep every currently-
+routable (`strong`-match) record routing, unchanged** — there's nothing
+in the evidence that says narrow it further — while treating the raw
+50% as underconfirmed rather than a settled rate, given N=4 on the
+strong stratum.
+
+**Explicitly not widened**: `precision (weak) = 0%` is a clean,
+unambiguous number (none of the 3 weak-stratum disagreements needed
+taxonomy charity to explain) — it directly confirms week 7's existing
+decision to never route `weak` matches. BETWEEN does not touch that.
+
+**What continuing under BETWEEN requires, unresolved by this gate
+alone:**
+- The two sweep-finding losses (`tests/run-integration.sh:6`,
+  `build-artifacts.sh:14`) are real regressions, unrelated to routing —
+  they need their own investigation, separate from the classifier
+  question this gate exists to answer.
+- The citation-line-accuracy defect found while verdicting (2 of 10
+  fresh findings cited a wrong, in-bounds line, and it's what broke
+  today's regression set) is a real pipeline defect worth a
+  `future-improvements/` entry — extending the citation check beyond
+  bounds-validation to a content spot-check.
+- A larger sample (this project's corpus is 20 units total; the plan
+  assumed ~50) would sharpen the precision number materially — the
+  next real diff volume this project sees is the natural place to
+  re-measure, not a manufactured extension corpus.
+
+None of the three above changes the gate decision on its own — they're
+work items surfaced by this week's measurement, not additional
+thresholds.
