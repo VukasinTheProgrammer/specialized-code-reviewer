@@ -196,6 +196,16 @@ guard:        Each import is written as `X as X  # noqa: F401 - compatibility ex
 unsafe_when:  An import that's actually part of an external-facing compatibility surface has no marking as intentional — a lint-driven or LLM-assisted "remove unused imports" cleanup then deletes it, breaking any external caller that still imports the symbol from its old location.
 human_approved: true
 
+### db.durable-atomic-write
+
+label:        db
+statement:    Persisting state to a local file replaces the file atomically (write to a temp file in the same directory, then rename), so a crash mid-write can never leave a partially-written file in the read path.
+exemplar:     `headroom/proxy/savings_tracker.py:1554`
+witnesses:    `headroom/proxy/savings_tracker.py:1576`
+              `headroom/proxy/cc_switch_reconciler.py:182`
+guard:        `_save_locked` (`headroom/proxy/savings_tracker.py:1554`) writes JSON to a `tempfile.mkstemp` file in the destination's own parent directory (lines 1576-1580), `fsync`s the file descriptor before renaming (line 1585), then does `Path(tmp_path).replace(self._path)` (line 1586) — an atomic rename on POSIX. `_atomic_write` (`headroom/proxy/cc_switch_reconciler.py:182`) applies the same temp-then-rename shape to a different file: a per-process temp name (line 185) so concurrent Headroom processes reconciling the same file don't clobber each other, then `os.replace(tmp, self.path)` (line 187).
+unsafe_when:  A new local-file persistence path writes directly to the destination path (`open(path, "w")` in place) instead of a temp-file-then-rename, so a crash or concurrent reader can observe a truncated or half-written file.
+
 ## Promoted non-defects
 
 (none — no ledger history exists yet for this repo/scope)
