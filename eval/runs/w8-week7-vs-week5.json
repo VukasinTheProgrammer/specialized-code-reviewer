@@ -1,0 +1,46 @@
+{
+  "week7": {"runs": 5, "findings": 14, "accepted": 12, "dismissed": 2, "mislabelled": 0},
+  "week5_arm_b": {"runs": 5, "findings": 11, "accepted": 11, "dismissed": 0, "mislabelled": 0},
+  "accepted_per_run": {"week7": 2.4, "week5_arm_b": 2.2, "delta": 0.2},
+  "acceptance_rate": {"week7": 0.857, "week5_arm_b": 1.0, "delta": -0.143},
+  "deviates_from": {
+    "count": 3,
+    "accepted": 3,
+    "acceptance_rate": 1.0,
+    "clears_gate2_clause": "yes — 100% >= overall 85.7%"
+  },
+  "per_label_delta_accepted": {
+    "validation": {"week5": 6, "week7": 5, "delta": -1},
+    "duplication": {"week5": 4, "week7": 3, "delta": -1},
+    "contract": {"week5": 1, "week7": 3, "delta": 2},
+    "control-flow": {"week5": 0, "week7": 1, "delta": 1},
+    "logic": {"week5": 0, "week7": 0, "delta": 0}
+  },
+  "sweep_findings_lost": [
+    {
+      "week5_id": "t-19", "file": "tests/run-integration.sh", "line": 6, "label": "validation",
+      "claim": "ROOT unguarded after git rev-parse --show-toplevel",
+      "status": "clean loss — still real in today's code (confirmed via git show), not reproduced anywhere in week7's 14 findings"
+    },
+    {
+      "week5_id": "t-10", "file": ".claude/skills/pr-review/scripts/build-artifacts.sh", "line": 14, "label": "contract",
+      "claim": "new $OUT/brief-probes-stderr artifact not documented in the script's own header or SKILL.md's artifact table",
+      "status": "clean loss — not reproduced anywhere in week7's 14 findings; week7's build-artifacts.sh:376 finding (e03#1) is a different, logic-shaped defect about the same code region, not this doc gap"
+    }
+  ],
+  "sweep_findings_lost_note": "Additionally, week7's e05-friday run produced 0 findings, versus week5 arm B's e05-friday run finding 1 accepted duplication (t-20, validate-pack.sh:18 — the same persisting duplication bug re-surfacing on a later diff). That specific bug's substance is still caught elsewhere in week7 (e01#3), so not counted as a third clean loss, but the per-run miss on e05-friday is real and worth naming.",
+  "citation_line_accuracy": {
+    "fresh_findings_audited": 10,
+    "wrong_but_in_bounds_line": 2,
+    "cases": [
+      {"finding": "e01-monday n=3", "cited_line": 24, "actual_line": 18, "note": "cited line is inside an unrelated TODO comment; the described for-loop is 6 lines earlier"},
+      {"finding": "e02-tuesday n=5", "cited_line": 65, "actual_line": 63, "note": "cited line is the bash -n check; the described awk extraction is 2 lines earlier", "has_deviates_from": true}
+    ]
+  },
+  "regression_set": {
+    "result": "FAIL",
+    "case": "18276dc4-duplication-.claude_skills_pr-review_scripts_validate-pack.sh-18",
+    "root_cause": "e01-monday n=3 cites line 24 instead of 18 (see citation_line_accuracy above) — check-regression-case.sh matches label+file+line exactly, so the citation drift alone fails the case even though the underlying defect is present in this week's actual findings",
+    "read": "not a real loss of coverage — the specific defect is still found — but a real, measured consequence of the citation-line-accuracy problem, not a hypothetical one"
+  }
+}
