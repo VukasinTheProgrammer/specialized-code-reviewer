@@ -138,4 +138,48 @@ else
   fail=1
 fi
 
+# ---- D9 (week 9): build-artifacts.sh, invoked by its REAL absolute path —
+# never copied into the reviewed repo, unlike every check above — must still
+# find its own model/ assets (pack-heading-check.sh, pack-headings.txt,
+# validate-pack.sh, parse_conventions.py) when the reviewed repo is a
+# genuinely foreign checkout with no model/ dir of its own. Before this
+# fix, those four call sites referenced "model/..." as a bare path relative
+# to $ROOT (the reviewed repo, post-cd), which every other check in this
+# suite masks by copying this tool's own model/ files into the throwaway
+# repo's own model/ dir (see the setup above) — that shim happens to sit at
+# exactly the relative depth build-artifacts.sh's own $SCRIPT_DIR-based
+# resolution now expects too, so it stays passing either way. This check
+# exists specifically to catch what those shims cannot: a foreign repo that
+# never had a model/ dir at all, invoked the way a real design-partner repo
+# actually is. ----
+D9_TMP="$(mktemp -d)"
+(
+  cd "$D9_TMP"
+  git init -q
+  git config user.email test@test.com
+  git config user.name test
+  echo "# readme" > README.md
+  echo "MIT" > LICENSE
+  echo "*.log" > .gitignore
+  mkdir -p .claude/skills/pr-review/scripts
+  echo "#!/usr/bin/env bash" > .claude/skills/pr-review/scripts/build-artifacts.sh
+  git add -A && git commit -q -m init
+  echo two >> README.md
+  git add -A && git commit -q -m change
+  git branch base HEAD~1
+)
+D9_OUT="$(cd "$D9_TMP" && PR_REVIEW_PACK="$PACKS/good.md" PR_REVIEW_NO_GRAPH=1 \
+  bash "$SCRIPTS/build-artifacts.sh" base 2>&1)"
+rm -rf "$D9_TMP"
+D9_ENV_LINE="$(printf '%s\n' "$D9_OUT" | grep -E '^(PACK_PRESENT|PACK_STALE|PACK_INVALID)=')"
+if printf '%s\n' "$D9_ENV_LINE" | grep -qxF 'PACK_PRESENT=1' \
+  && printf '%s\n' "$D9_ENV_LINE" | grep -qxF 'PACK_STALE=0' \
+  && printf '%s\n' "$D9_ENV_LINE" | grep -qxF 'PACK_INVALID=0'; then
+  echo "ok   D9: build-artifacts.sh resolves its own model/ assets from a foreign repo with no model/ dir"
+else
+  echo "FAIL D9: expected PACK_PRESENT=1/PACK_STALE=0/PACK_INVALID=0 from outside this repo"
+  printf '%s\n' "$D9_OUT" | sed 's/^/       /'
+  fail=1
+fi
+
 exit "$fail"

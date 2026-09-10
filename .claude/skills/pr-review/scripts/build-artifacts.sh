@@ -35,6 +35,16 @@
 #   6 cannot create the replay worktree (PR_REVIEW_HEAD, or a dirty tree)
 set -u
 BASE_ARG="${1:-dev}"
+# Resolved from $0, before any cd — this tool's own model/ assets (the
+# validator, the record parser, the heading list) live next to this script,
+# not in whatever repo is under review. $ROOT below is the reviewed repo and
+# is the right base for $PACK's default and everything genuinely
+# repo-relative (citations, $OUT under .git/); it is the wrong base for this
+# tool's own tooling once this script runs against a foreign repo (week 9's
+# design-partner case) — same reasoning model/validate-pack.sh's own
+# SCRIPT_DIR already applies, just missing here until now.
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+MODEL_DIR="$(cd "$SCRIPT_DIR/../../../.." && pwd)/model"
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || { echo "error: not inside a git repository" >&2; exit 2; }
 cd "$ROOT"
 PACK="${PR_REVIEW_PACK:-model/pr-review-domain.md}"
@@ -54,8 +64,10 @@ extract_citations() {  # every `path.ext[:line[-line2]]` citation containing a '
 }
 
 # missing_pack_headings() — shared with model/validate-pack.sh, not
-# duplicated (see model/pack-heading-check.sh for why).
-. model/pack-heading-check.sh
+# duplicated (see model/pack-heading-check.sh for why). $MODEL_DIR, not a
+# bare relative path — this file lives in the tool's own repo, not the
+# reviewed one.
+. "$MODEL_DIR/pack-heading-check.sh"
 
 # The pack's ## Wiring files fenced block, verbatim — shared between
 # PACK_WIRING_PATHS (staleness checking, below) and $OUT/wiring.txt (handed
@@ -86,8 +98,8 @@ if [ -f "$PACK" ]; then
   # block a review, degrade instead," and a checkout missing its own
   # tooling asset is the same kind of can't-fully-verify-this-pack state
   # PACK_STALE already exists to represent, not a new class of hard stop.
-  if ! MISSING_HEADINGS="$(missing_pack_headings model/pack-headings.txt "$PACK")"; then
-    echo "warning: model/pack-headings.txt not found — cannot check required headings; treating pack as stale (generic fallback probes)." >&2
+  if ! MISSING_HEADINGS="$(missing_pack_headings "$MODEL_DIR/pack-headings.txt" "$PACK")"; then
+    echo "warning: $MODEL_DIR/pack-headings.txt not found — cannot check required headings; treating pack as stale (generic fallback probes)." >&2
     STALE=1; PACK_INVALID=1
   elif [ -n "$MISSING_HEADINGS" ]; then
     echo "warning: domain pack is missing (or has renamed) these section headings — each degrades silently to empty otherwise: $(printf '%s' "$MISSING_HEADINGS" | tr '\n' '|' | sed 's/|/, /g; s/, $//')" >&2
@@ -113,7 +125,7 @@ fi
 # probes and say so loudly. PACK_INVALID/STALE already initialized above,
 # not re-declared here — a missing pack-headings.txt already set both and
 # a re-init here would silently discard that. ----------
-VALIDATOR="model/validate-pack.sh"
+VALIDATOR="$MODEL_DIR/validate-pack.sh"
 if [ "$PACK_PRESENT" = 1 ] && [ -f "$VALIDATOR" ]; then
   VALIDATE_OUT="$(bash "$VALIDATOR" "$PACK" 2>&1)"
   if [ $? = 1 ]; then
@@ -513,13 +525,13 @@ for f in access data answer structure; do : > "$OUT/probes-$f.txt"; done
 echo '[]' > "$OUT/records.json"
 if [ "$PACK_PRESENT" = 1 ] && [ "$STALE" = 0 ]; then
   if [ "$HAVE_PY3" = 1 ]; then
-    python3 model/parse_conventions.py "$PACK" render "$OUT" "$BE" "$FE"
+    python3 "$MODEL_DIR/parse_conventions.py" "$PACK" render "$OUT" "$BE" "$FE"
     # ---------- records.json (week 7): one {id, label, exemplar, guard,
     # unsafe_when, stack} per stack-allowed record, keyed by id — what the
     # workflow script looks up to render a "governed units" block for a
     # governed·strong file, since probes-*.txt is label-indexed prose, not
     # a per-record lookup. ----------
-    python3 model/parse_conventions.py "$PACK" records-json "$BE" "$FE" > "$OUT/records.json"
+    python3 "$MODEL_DIR/parse_conventions.py" "$PACK" records-json "$BE" "$FE" > "$OUT/records.json"
   else
     echo "warning: python3 not found — Label probes records not rendered, probes-*.txt/records.json left empty" >&2
   fi
@@ -542,7 +554,7 @@ fi
 MATCH_CAP="${PR_REVIEW_MATCH_CAP:-40}"
 : > "$OUT/candidates.txt"
 if [ "$PACK_PRESENT" = 1 ] && [ "$STALE" = 0 ] && [ "$HAVE_PY3" = 1 ]; then
-  python3 model/parse_conventions.py "$PACK" match "$OUT/patch.diff" "$READ_ROOT" "$BE" "$FE" \
+  python3 "$MODEL_DIR/parse_conventions.py" "$PACK" match "$OUT/patch.diff" "$READ_ROOT" "$BE" "$FE" \
     | head -n "$MATCH_CAP" > "$OUT/candidates.txt"
 fi
 # One line per changed file always ("(none)" included) — count only the
@@ -596,7 +608,7 @@ fi
 # suppress every other rule. ----------
 PACK_NON_DEFECTS_TEXT=""
 if [ "$PACK_PRESENT" = 1 ] && [ "$HAVE_PY3" = 1 ]; then
-  PACK_NON_DEFECTS_TEXT="$(python3 model/parse_conventions.py "$PACK" extract-section "## Promoted non-defects" | grep -v '^$')"
+  PACK_NON_DEFECTS_TEXT="$(python3 "$MODEL_DIR/parse_conventions.py" "$PACK" extract-section "## Promoted non-defects" | grep -v '^$')"
 fi
 if { [ "$LEDGER_PRESENT" = 1 ] && [ -n "$KNOWN_NON_DEFECTS_TEXT" ]; } || [ -n "$PACK_NON_DEFECTS_TEXT" ]; then
   # -n guards a section that matched but was empty (e.g. a ledger with a
