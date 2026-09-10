@@ -5,6 +5,8 @@ description: (Re)generate `model/pr-review-domain.md`, the domain pack `/pr-revi
 
 Produces a complete replacement for `model/pr-review-domain.md`. Six sections, each citation a real `file:line` on the base branch. Never regenerate a pack that already passed `/pr-review`'s staleness check (`PACK_PRESENT=1 PACK_STALE=0`) — that rewrites the reviewer's own probe corpus mid-run and makes two reviews of the same diff different experiments.
 
+**Partner packs.** A pack generated for a repo other than this one lives at `model/partners/<name>/pr-review-domain.md` in *this* repo, never committed into the foreign repo — pass it to `/pr-review` via `PR_REVIEW_PACK`. Everything else in this skill (worktree, citation rules, verification, cleanup) applies unchanged; the only difference is the output path in Step 2 and the worktree's `<BASE>` pointing at the foreign repo's own branch.
+
 ## Step 0 — Preflight
 
 Pick `<tmp>` — a path outside the repo, e.g. `/tmp/domain-pack-worktree-<repo-name>`. Before anything else:

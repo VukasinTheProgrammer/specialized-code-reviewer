@@ -250,7 +250,32 @@ def validate_records(records, section_lines):
         for k in unknown:
             yield "invalid", f"{loc}: unknown field `{k}` — not one of the ten defined fields, a typo? (model/FORMAT.md §3)"
 
+        # human_approved is computed before REQUIRED_FIELDS below — §3d
+        # explicitly documents a human-approved record may carry as few as
+        # zero witnesses ("in principle, none"), which only `witnesses`'
+        # own required-ness (not any other required field) may be waived
+        # for. Computing it here, ahead of that loop, is what makes the
+        # waiver possible instead of merely cosmetic (D-week9-2): the
+        # REQUIRED_FIELDS loop used to run unconditionally and reject an
+        # empty `witnesses` before the waiver a few lines below ever ran,
+        # so the zero-witness case §3d documents as valid was unreachable.
+        human_approved_raw = r.get("human_approved")
+        human_approved = False
+        if human_approved_raw is not None:
+            # Case-sensitive on purpose, matching stack_allows()'s own
+            # exact-match check on `stack` a few lines up in this file —
+            # §3d's doc text promises "must be exactly `true` or `false`",
+            # and a case-folded compare (D-week9-2) would silently accept
+            # `True`/`TRUE` instead of flagging it the way every other
+            # field-value check in this file flags an off-spec value.
+            v = human_approved_raw.strip()
+            if v not in ("true", "false"):
+                yield "invalid", f"{loc}: `human_approved` must be exactly `true` or `false`, not `{human_approved_raw}` (model/FORMAT.md §3d)"
+            human_approved = v == "true"
+
         for field in REQUIRED_FIELDS:
+            if field == "witnesses" and human_approved:
+                continue  # §3d: a human-approved record may carry zero
             value = r.get(field)
             if not value:  # covers missing, empty string, and empty list alike
                 yield "invalid", f"{loc}: missing or empty required field `{field}` (model/FORMAT.md §3)"
@@ -258,14 +283,6 @@ def validate_records(records, section_lines):
         label = r.get("label")
         if label and label not in CLOSED_LABELS:
             yield "invalid", f"{loc}: label `{label}` is not one of the 15 closed labels (model/FORMAT.md §4)"
-
-        human_approved_raw = r.get("human_approved")
-        human_approved = False
-        if human_approved_raw is not None:
-            v = human_approved_raw.strip().lower()
-            if v not in ("true", "false"):
-                yield "invalid", f"{loc}: `human_approved` must be exactly `true` or `false`, not `{human_approved_raw}` (model/FORMAT.md §3d)"
-            human_approved = v == "true"
 
         witnesses = r.get("witnesses") or []
         if r.get("witnesses") is not None and len(witnesses) < 2 and not human_approved:

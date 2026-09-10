@@ -101,6 +101,36 @@ the file's actual line count — the same bounds check `build-artifacts.sh`
 already runs for staleness, applied here at authoring time instead of
 diff-review time.
 
+## §3c — The matcher: which record governs a changed file
+
+Week 6's deterministic pre-pass (`model/parse_conventions.py`'s `match`
+mode, run before the scout ever sees the diff). No author-set field — every
+signal is derived structurally from a record's own `exemplar`, `witnesses`
+and `guard`, which is the real reason §3 requires at least two witnesses:
+one citation gives you a file, three give you a pattern.
+
+| Signal | How it's computed | Weight |
+|---|---|---|
+| `directory` | The changed file shares a directory with the exemplar or a witness | 2 |
+| `filename` | Every exemplar/witness basename shares a common trailing name-shape word with the changed file's basename (`*_repository.py`, `*_service_impl.py`) | 2 |
+| `symbol` | A changed file's added function/method shares a leading name-shape with the function enclosing the exemplar's own cited line (`get_by_*`, `create_*`) | 1 |
+| `tokens` | A distinctive identifier-shaped word from the record's `guard` text appears literally in the changed file's added lines | 1 |
+| `stack` | The record's `stack` against the run's `BE`/`FE` — **a veto, not a score** | veto |
+
+A record becomes a candidate at **score ≥ 3** — no single signal (max
+weight 2) can nominate on its own. Rank by score, cap at 3 per changed
+file, written to `$OUT/candidates.txt` (`file<TAB>id:score<TAB>...`, or
+`file<TAB>(none)`).
+
+**Either signal may veto; only agreement may assert.** The scout confirms
+or rejects every candidate against the actual code — a high score is a
+proposal, never a verdict. When the matcher proposes nothing but the scout
+still names a record it recognizes, that's allowed (`governed · weak`) but
+only when the scout states in one line why; when the matcher and the scout
+disagree on which record applies, or the matcher's literal hit doesn't
+correspond to what the code actually does, the unit is `new` — a wrong
+`governed` is the expensive failure this asymmetry exists to prevent.
+
 ## §3d — `human_approved`: a person's judgment stands in for the second witness
 
 Week 9. `generate-domain-pack` runs unattended — nobody is present to vouch
@@ -132,36 +162,6 @@ exactly as before this section existed — §3's ≥2 rule applies normally.
 The field must be exactly `true` or `false` when present at all; any other
 value is rejected as a typo, not silently ignored (same doctrine as every
 other field-value check in this file).
-
-## §3c — The matcher: which record governs a changed file
-
-Week 6's deterministic pre-pass (`model/parse_conventions.py`'s `match`
-mode, run before the scout ever sees the diff). No author-set field — every
-signal is derived structurally from a record's own `exemplar`, `witnesses`
-and `guard`, which is the real reason §3 requires at least two witnesses:
-one citation gives you a file, three give you a pattern.
-
-| Signal | How it's computed | Weight |
-|---|---|---|
-| `directory` | The changed file shares a directory with the exemplar or a witness | 2 |
-| `filename` | Every exemplar/witness basename shares a common trailing name-shape word with the changed file's basename (`*_repository.py`, `*_service_impl.py`) | 2 |
-| `symbol` | A changed file's added function/method shares a leading name-shape with the function enclosing the exemplar's own cited line (`get_by_*`, `create_*`) | 1 |
-| `tokens` | A distinctive identifier-shaped word from the record's `guard` text appears literally in the changed file's added lines | 1 |
-| `stack` | The record's `stack` against the run's `BE`/`FE` — **a veto, not a score** | veto |
-
-A record becomes a candidate at **score ≥ 3** — no single signal (max
-weight 2) can nominate on its own. Rank by score, cap at 3 per changed
-file, written to `$OUT/candidates.txt` (`file<TAB>id:score<TAB>...`, or
-`file<TAB>(none)`).
-
-**Either signal may veto; only agreement may assert.** The scout confirms
-or rejects every candidate against the actual code — a high score is a
-proposal, never a verdict. When the matcher proposes nothing but the scout
-still names a record it recognizes, that's allowed (`governed · weak`) but
-only when the scout states in one line why; when the matcher and the scout
-disagree on which record applies, or the matcher's literal hit doesn't
-correspond to what the code actually does, the unit is `new` — a wrong
-`governed` is the expensive failure this asymmetry exists to prevent.
 
 ## §4 — Label probes: closed label list
 

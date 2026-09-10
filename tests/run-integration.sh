@@ -204,4 +204,29 @@ else
   fail=1
 fi
 
+# ---- D11 (week 9, /code-review pass): two contract mismatches between
+# model/FORMAT.md §3d's prose and parse_conventions.py's actual check,
+# found by an independent code review, not by this suite. §3d says a
+# human-approved record "may carry as few as one real witness (or, in
+# principle, none)" — but REQUIRED_FIELDS used to run unconditionally
+# before the human_approved waiver, rejecting an empty `witnesses` list
+# even when approved, making the documented zero-witness case
+# unreachable. Separately, §3d says the field "must be exactly `true` or
+# `false`... any other value is rejected as a typo" — but the check used
+# to `.lower()` the value first, silently accepting `True`/`TRUE`. Both
+# fixed by computing human_approved before REQUIRED_FIELDS and comparing
+# it case-sensitively. ----
+D11_ZERO="$(bash "$ROOT/model/validate-pack.sh" "$PACKS/good-human-approved-zero-witness.md" "$ROOT" 2>&1)"
+D11_ZERO_EXIT=$?
+D11_CASE="$(bash "$ROOT/model/validate-pack.sh" "$PACKS/bad-human-approved-wrong-case.md" "$ROOT" 2>&1)"
+D11_CASE_EXIT=$?
+if [ "$D11_ZERO_EXIT" = 0 ] && [ "$D11_CASE_EXIT" != 0 ]; then
+  echo "ok   D11: human_approved:true with zero witnesses passes; human_approved:True (wrong case) fails as a typo"
+else
+  echo "FAIL D11: expected zero-witness pack exit 0 (got $D11_ZERO_EXIT) and wrong-case pack exit != 0 (got $D11_CASE_EXIT)"
+  echo "       zero-witness output:"; printf '%s\n' "$D11_ZERO" | sed 's/^/         /'
+  echo "       wrong-case output:"; printf '%s\n' "$D11_CASE" | sed 's/^/         /'
+  fail=1
+fi
+
 exit "$fail"
