@@ -1,0 +1,182 @@
+[
+  {
+    "id": "u-01",
+    "entry": "e01-monday",
+    "file": "tests/packs/bad-unknown-label.md",
+    "stratum": "B-new",
+    "tool_classification": "new",
+    "tool_match_strength": null,
+    "tool_matched_convention": null
+  },
+  {
+    "id": "u-02",
+    "entry": "e02-tuesday",
+    "file": ".claude/skills/pr-review/scripts/validate-pack.sh",
+    "stratum": "A-governed",
+    "tool_classification": "governed",
+    "tool_match_strength": "strong",
+    "tool_matched_convention": "control-flow.no-errexit-for-collect-all-findings"
+  },
+  {
+    "id": "u-03",
+    "entry": "e03-wednesday",
+    "file": "tests/packs/bad-brief-runtime-err.md",
+    "stratum": "B-new",
+    "tool_classification": "new",
+    "tool_match_strength": null,
+    "tool_matched_convention": null
+  },
+  {
+    "id": "u-04",
+    "entry": "e01-monday",
+    "file": "tests/packs/bad-wiring-unfenced.md",
+    "stratum": "B-new",
+    "tool_classification": "new",
+    "tool_match_strength": null,
+    "tool_matched_convention": null
+  },
+  {
+    "id": "u-05",
+    "entry": "e05-friday",
+    "file": "model/FORMAT.md",
+    "stratum": "B-new",
+    "tool_classification": "new",
+    "tool_match_strength": null,
+    "tool_matched_convention": null
+  },
+  {
+    "id": "u-06",
+    "entry": "e03-wednesday",
+    "file": ".claude/skills/pr-review/SKILL.md",
+    "stratum": "B-new",
+    "tool_classification": "new",
+    "tool_match_strength": null,
+    "tool_matched_convention": null
+  },
+  {
+    "id": "u-07",
+    "entry": "e03-wednesday",
+    "file": ".claude/skills/pr-review/scripts/build-artifacts.sh",
+    "stratum": "A-governed",
+    "tool_classification": "governed",
+    "tool_match_strength": "strong",
+    "tool_matched_convention": "control-flow.no-errexit-for-collect-all-findings"
+  },
+  {
+    "id": "u-08",
+    "entry": "e05-friday",
+    "file": "README.md",
+    "stratum": "B-new",
+    "tool_classification": "new",
+    "tool_match_strength": null,
+    "tool_matched_convention": null
+  },
+  {
+    "id": "u-09",
+    "entry": "e05-friday",
+    "file": ".claude/skills/pr-review/scripts/validate-pack.sh",
+    "stratum": "A-governed",
+    "tool_classification": "governed",
+    "tool_match_strength": "strong",
+    "tool_matched_convention": "contract.script-header-documents-interface"
+  },
+  {
+    "id": "u-10",
+    "entry": "e01-monday",
+    "file": ".gitignore",
+    "stratum": "B-new",
+    "tool_classification": "new",
+    "tool_match_strength": null,
+    "tool_matched_convention": null
+  },
+  {
+    "id": "u-11",
+    "entry": "e01-monday",
+    "file": ".claude/skills/pr-review/scripts/validate-pack.sh",
+    "stratum": "A-governed",
+    "tool_classification": "governed",
+    "tool_match_strength": "weak",
+    "tool_matched_convention": "duplication.shared-matching-logic-sourced-not-copied"
+  },
+  {
+    "id": "u-12",
+    "entry": "e01-monday",
+    "file": "tests/packs/bad-heading-case.md",
+    "stratum": "B-new",
+    "tool_classification": "new",
+    "tool_match_strength": null,
+    "tool_matched_convention": null
+  },
+  {
+    "id": "u-13",
+    "entry": "e01-monday",
+    "file": "tests/run.sh",
+    "stratum": "A-governed",
+    "tool_classification": "governed",
+    "tool_match_strength": "weak",
+    "tool_matched_convention": "validation.git-root-guard"
+  },
+  {
+    "id": "u-14",
+    "entry": "e04-thursday",
+    "file": ".claude/skills/generate-domain-pack/SKILL.md",
+    "stratum": "A-governed",
+    "tool_classification": "governed",
+    "tool_match_strength": "weak",
+    "tool_matched_convention": "contract.upstream-claim-reverified"
+  },
+  {
+    "id": "u-15",
+    "entry": "e03-wednesday",
+    "file": "tests/run-integration.sh",
+    "stratum": "A-governed",
+    "tool_classification": "governed",
+    "tool_match_strength": "strong",
+    "tool_matched_convention": "contract.upstream-claim-reverified"
+  },
+  {
+    "id": "u-16",
+    "entry": "e02-tuesday",
+    "file": ".gitignore",
+    "stratum": "B-new",
+    "tool_classification": "new",
+    "tool_match_strength": null,
+    "tool_matched_convention": null
+  },
+  {
+    "id": "u-17",
+    "entry": "e01-monday",
+    "file": "tests/packs/bad-pipe-in-cell.md",
+    "stratum": "B-new",
+    "tool_classification": "new",
+    "tool_match_strength": null,
+    "tool_matched_convention": null
+  },
+  {
+    "id": "u-18",
+    "entry": "e01-monday",
+    "file": "tests/packs/bad-brief-syntax.md",
+    "stratum": "B-new",
+    "tool_classification": "new",
+    "tool_match_strength": null,
+    "tool_matched_convention": null
+  },
+  {
+    "id": "u-19",
+    "entry": "e01-monday",
+    "file": "tests/packs/good.md",
+    "stratum": "B-new",
+    "tool_classification": "new",
+    "tool_match_strength": null,
+    "tool_matched_convention": null
+  },
+  {
+    "id": "u-20",
+    "entry": "e01-monday",
+    "file": "tests/packs/bad-citation-unquoted.md",
+    "stratum": "B-new",
+    "tool_classification": "new",
+    "tool_match_strength": null,
+    "tool_matched_convention": null
+  }
+]
