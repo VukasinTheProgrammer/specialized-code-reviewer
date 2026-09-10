@@ -3,12 +3,12 @@
 # Never repairs, never stops at the first problem — prints every finding it
 # can, same doctrine the reviewer itself is held to.
 #
-#   usage: bash model/validate-pack.sh <pack-file>
+#   usage: bash model/validate-pack.sh <pack-file> [repo-root]
 # Exit codes: 0 valid   1 invalid (findings printed)   2 pack file missing   3 bad usage
 set -u
 
 PACK="${1:-}"
-[ -n "$PACK" ] || { echo "usage: validate-pack.sh <pack-file>" >&2; exit 3; }
+[ -n "$PACK" ] || { echo "usage: validate-pack.sh <pack-file> [repo-root]" >&2; exit 3; }
 [ -r "$PACK" ] || { echo "error: cannot read '$PACK'" >&2; exit 2; }
 
 # Resolved relative to this script's own location, not $PWD — this script is
@@ -19,10 +19,18 @@ PACK="${1:-}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 HEADINGS_FILE="$SCRIPT_DIR/pack-headings.txt"
 
-# Citations in a record (`exemplar`/`witnesses`/`deviations`) are repo-relative,
-# same convention as everywhere else in the pack — resolved against the repo
-# root, not whatever directory this script happened to be invoked from.
-PACK_REPO_ROOT="$(cd "$SCRIPT_DIR" && git rev-parse --show-toplevel 2>/dev/null)"
+# Citations in a record (`exemplar`/`witnesses`/`deviations`) are repo-relative
+# — but relative to whichever repo the pack is actually FOR, which is this
+# script's own repo only in the common case where the pack was written for it.
+# Week 9's partner packs break that assumption on purpose (model/partners/
+# <name>/pr-review-domain.md lives here, cites a repo that isn't this one) —
+# so an explicit second arg overrides the default, and build-artifacts.sh
+# passes $ROOT (the repo actually under review) so this stays correct there
+# too, not just when called standalone on this repo's own pack.
+PACK_REPO_ROOT="${2:-}"
+if [ -z "$PACK_REPO_ROOT" ]; then
+  PACK_REPO_ROOT="$(cd "$SCRIPT_DIR" && git rev-parse --show-toplevel 2>/dev/null)"
+fi
 
 # missing_pack_headings() — shared with build-artifacts.sh, not duplicated
 # (see model/pack-heading-check.sh for why).

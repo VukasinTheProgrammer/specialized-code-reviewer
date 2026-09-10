@@ -127,7 +127,7 @@ fi
 # a re-init here would silently discard that. ----------
 VALIDATOR="$MODEL_DIR/validate-pack.sh"
 if [ "$PACK_PRESENT" = 1 ] && [ -f "$VALIDATOR" ]; then
-  VALIDATE_OUT="$(bash "$VALIDATOR" "$PACK" 2>&1)"
+  VALIDATE_OUT="$(bash "$VALIDATOR" "$PACK" "$ROOT" 2>&1)"
   if [ $? = 1 ]; then
     PACK_INVALID=1; STALE=1
     echo "warning: domain pack fails format validation — treating as stale (empty probes, generic fallback):" >&2
