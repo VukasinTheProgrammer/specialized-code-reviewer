@@ -1,0 +1,122 @@
+[
+  {
+    "id": "u-01",
+    "file": "tests/packs/bad-unknown-label.md",
+    "governing_record": null,
+    "confidence": "sure"
+  },
+  {
+    "id": "u-02",
+    "file": ".claude/skills/pr-review/scripts/validate-pack.sh",
+    "governing_record": "control-flow.no-errexit-for-collect-all-findings",
+    "confidence": "sure"
+  },
+  {
+    "id": "u-03",
+    "file": "tests/packs/bad-brief-runtime-err.md",
+    "governing_record": null,
+    "confidence": "sure"
+  },
+  {
+    "id": "u-04",
+    "file": "tests/packs/bad-wiring-unfenced.md",
+    "governing_record": null,
+    "confidence": "sure"
+  },
+  {
+    "id": "u-05",
+    "file": "model/FORMAT.md",
+    "governing_record": null,
+    "confidence": "sure"
+  },
+  {
+    "id": "u-06",
+    "file": ".claude/skills/pr-review/SKILL.md",
+    "governing_record": null,
+    "confidence": "sure"
+  },
+  {
+    "id": "u-07",
+    "file": ".claude/skills/pr-review/scripts/build-artifacts.sh",
+    "governing_record": null,
+    "confidence": "unsure"
+  },
+  {
+    "id": "u-08",
+    "file": "README.md",
+    "governing_record": null,
+    "confidence": "sure"
+  },
+  {
+    "id": "u-09",
+    "file": ".claude/skills/pr-review/scripts/validate-pack.sh",
+    "governing_record": null,
+    "confidence": "sure"
+  },
+  {
+    "id": "u-10",
+    "file": ".gitignore",
+    "governing_record": null,
+    "confidence": "sure"
+  },
+  {
+    "id": "u-11",
+    "file": ".claude/skills/pr-review/scripts/validate-pack.sh",
+    "governing_record": "control-flow.no-errexit-for-collect-all-findings",
+    "confidence": "unsure"
+  },
+  {
+    "id": "u-12",
+    "file": "tests/packs/bad-heading-case.md",
+    "governing_record": null,
+    "confidence": "sure"
+  },
+  {
+    "id": "u-13",
+    "file": "tests/run.sh",
+    "governing_record": null,
+    "confidence": "unsure"
+  },
+  {
+    "id": "u-14",
+    "file": ".claude/skills/generate-domain-pack/SKILL.md",
+    "governing_record": null,
+    "confidence": "unsure"
+  },
+  {
+    "id": "u-15",
+    "file": "tests/run-integration.sh",
+    "governing_record": "contract.upstream-claim-reverified",
+    "confidence": "unsure"
+  },
+  {
+    "id": "u-16",
+    "file": ".gitignore",
+    "governing_record": null,
+    "confidence": "sure"
+  },
+  {
+    "id": "u-17",
+    "file": "tests/packs/bad-pipe-in-cell.md",
+    "governing_record": null,
+    "confidence": "sure"
+  },
+  {
+    "id": "u-18",
+    "file": "tests/packs/bad-brief-syntax.md",
+    "governing_record": null,
+    "confidence": "sure"
+  },
+  {
+    "id": "u-19",
+    "file": "tests/packs/good.md",
+    "governing_record": null,
+    "confidence": "sure"
+  },
+  {
+    "id": "u-20",
+    "file": "tests/packs/bad-citation-unquoted.md",
+    "governing_record": null,
+    "confidence": "sure"
+  }
+]
