@@ -198,3 +198,15 @@ Both live under `.git/`, so nothing the reviewer produces can ever be committed 
   bug has not been *hit*, never a reason it is not *there*.
 - **Re-run the whole regression set after any change to the reviewer** — a change that recovers one
   finding while losing another is not progress, and only a full re-run shows it.
+- **`/pr-review` cannot review its own domain pack or skills — run `/code-review` on those diffs
+  instead.** The 15-label taxonomy catches *code* violating a cited convention; a diff that only
+  adds or edits prose (a Label probes record, `FORMAT.md`, a `SKILL.md`, `parse_conventions.py`)
+  has nothing for those labels to fire on, so `/pr-review` returns a true-but-useless clean.
+  `validate-pack.sh` checks the *format* contract, not whether a `guard` field's prose is actually
+  true of the code it cites. A generic reviewer reading prose-about-code (`/code-review`, or an
+  equivalent pass) has caught real defects in every pack/skill/format change this project has made
+  — wording that misstates a mechanism, a spec/code mismatch, a section-ordering slip. Treat that
+  pass as required for any diff under `model/` or `.claude/skills/`, the same way the regression
+  re-run is required for a reviewer change. No deterministic check for this is planned: the
+  machine-checkable part (citation resolves, cited symbol exists) is already covered, and the part
+  that actually bites (is the description accurate) isn't machine-checkable.
