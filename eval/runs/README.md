@@ -24,7 +24,7 @@ dismissed (dismissed implies the finding was fairly tested against the
 actual diff and failed; this one was tested against the wrong tree
 entirely).
 
-Logged generally in `future-improvements/unscoped-dirty-tree-stale-citation.md`
-(the Tuesday sibling of this problem — that one was stale-old content on a
+Logged generally in `future-improvements/week-5-dirty-tree-stale-citation.md`
+(the sibling of this problem — that one was stale-old content on a
 dirty tree, this one is live-current content leaking into a historical
 diff; same root cause, opposite direction).

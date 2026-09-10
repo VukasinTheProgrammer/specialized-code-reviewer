@@ -1,6 +1,6 @@
 # PR reviewer — regression set
 
-0.10.1's second measurement source. Where the [corrections ledger](../review-corrections.md)
+The second measurement source. Where the [corrections ledger](../review-corrections.md)
 measures what the reviewer reports and how much survives a human read, this
 measures whether a *change to the reviewer* loses ground it already held.
 
@@ -67,6 +67,9 @@ rather than silently reporting a false pass or fail.
 
 ## Reading the set
 
-At 10+ accumulated cases, per-0.10 AC5, the Structure-slice model, the
-description pass and the slice boundaries get decided from counts here and
-in the run tally — not from argument.
+Once the set is large enough to argue from (10+ accumulated cases), open
+questions about slice boundaries, the description pass, or per-label
+behaviour get decided from the counts here and in the run tally — not from
+argument. The phase-2 versions of those calls (the classifier schema, the
+routing, the Structure slice) were settled that way in weeks 6–8; the rule
+stands for whatever comes next.

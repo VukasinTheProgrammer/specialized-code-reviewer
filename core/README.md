@@ -20,8 +20,18 @@ of it. None of it carries doctrine — if a harness file's content changes
 what the reviewer decides is a defect, that content belongs in `core/`
 instead.
 
-`model/` and `eval/` are neither — `model/` is the domain pack itself, its
-format contract, and its validator (repo-specific data plus the tool that
-checks it); `eval/` is the ledger, the regression corpus, and the baseline
-measurements. Both survive a rewrite same as `core/`, they're just not
-*doctrine* — they're data and evidence, not the rules the doctrine states.
+`model/` and `eval/` are neither — `model/` is the domain pack itself
+(`pr-review-domain.md` for this repo, `partners/<name>/pr-review-domain.md`
+for a foreign one), its format contract (`FORMAT.md`), and its validator
+(`validate-pack.sh` + `parse_conventions.py`) — repo-specific data plus the
+tool that checks it; `eval/` is the ledger, the regression corpus, and the
+baseline measurements. Both survive a rewrite same as `core/`, they're just
+not *doctrine* — they're data and evidence, not the rules the doctrine
+states.
+
+The two pack-authoring skills (`.claude/skills/generate-domain-pack`,
+`.claude/skills/learn`) are harness, not core: they orchestrate reads and a
+worktree to *produce* `model/` data, but the rules that make a probe valid
+live in `model/FORMAT.md` and the label taxonomy lives in
+`core/agents/verify-*.body.md`. A skill that started encoding what counts as
+a real convention would be doctrine in the wrong place.
