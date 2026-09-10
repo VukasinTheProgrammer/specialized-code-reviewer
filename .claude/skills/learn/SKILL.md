@@ -20,20 +20,23 @@ Ask, if not already given: which repo, which base branch, which subtree/scope (a
 Identical to `generate-domain-pack` Step 1 — a base-branch-scoped worktree, `graphify update <tmp>` (or the in-scope subtree if the target is narrower, e.g. `<tmp>/crates` — an unscoped whole-repo index dilutes discovery on anything short of the whole repo; confirmed this costs real quality in `future-improvements/week-9-code-review-graph-as-a-view-on-graphifys-map.md`'s scoped-follow-up section):
 
 ```bash
-git worktree add <tmp> <BASE>
-graphify update <tmp>[/<scope>]
+git worktree add <tmp> <BASE>            # <BASE> is a branch name; for a
+                                         # detached checkout at a fixed SHA
+                                         # use `git worktree add --detach <tmp> <SHA>`
+                                         # and treat HEAD as <BASE> everywhere below
+graphify update <tmp>[/<scope>]          # graph.json lands at <tmp>[/<scope>]/graphify-out/graph.json
 ```
 
-Continue without it if it fails or isn't installed — Step 2 falls back to Grep/Glob.
+Continue without it if it fails or isn't installed — Step 2 falls back to Grep/Glob. Pass that `graphify-out/graph.json` path to every `graphify` call in Steps 2-3 via `--graph`.
 
 ## Step 2 — Import-graph scan for hub candidates
 
 Find the files worth drafting a record *from*, not yet the records themselves. A hub file (high import fan-in, a router/dispatch aggregation point, a shared error/enum map) is more likely to hold an established convention than a leaf file, and its inbound edges give you witnesses for free.
 
-- **Graphify available**: `graphify explain "<candidate>"` and its `Degree:` line, or `graphify query "router registration and dependency wiring"`, the same discovery move `generate-domain-pack` Step 2's Wiring-files bullet already uses.
+- **Graphify available**: `graphify explain "<candidate>" --graph <graph.json>` and its `Degree:` line, or `graphify query "router registration and dependency wiring" --graph <graph.json>`, the same discovery move `generate-domain-pack` Step 2's Wiring-files bullet already uses. (`graphify path "<a>" "<b>" --graph <graph.json>` also exists — a shortest-path trace between two named nodes — but it's rarely the right tool at this stage; `explain`/`query` are what find hubs.)
 - **No graphify**: grep for import fan-in (`grep -rn "^(import|use|from) " | sort | uniq -c | sort -rn`, adapted to the stack's own import syntax) and `mod.rs`/`lib.rs`/`index.ts`-shaped re-export hubs.
 
-Bound the sample — the plan's own number is 15-30 candidates, not "every file." Pick enough hub files that a handful of genuinely-repeated patterns can surface, not so many that Step 3 drafts more than a person can review in one sitting.
+Bound the sample — aim for **15-30 candidates for a whole small repo or a full stack; scale down for a narrow sub-package** (a single ~20-30k-line module might honestly only hold 8-12 real conventions, and that is a right-sized result, not a low-count finding). Pick enough hub files that a handful of genuinely-repeated patterns can surface, not so many that Step 3 drafts more than a person can review in one sitting. A count well under 10 *for a repo that should have more* is the real finding the error-handling table means.
 
 ## Step 3 — Draft candidates (proposer only, never a writer)
 
@@ -58,11 +61,15 @@ Present candidates in batches (5-8 at a time, not all 15-30 at once — a person
 
 Use plain conversational review, not a constrained-choice tool — this content is multi-paragraph and citation-heavy, a poor fit for a short-label picker. Ask the reviewer to reply per-candidate: accept as-is, accept with a specific edit (a different exemplar, a corrected guard, a supplied second witness), or reject with why. Log every rejection's reason briefly — a same-shape candidate rejected twice for the same reason is worth naming as a promoted non-defect (`model/FORMAT.md` §4b) instead of drafting a third time.
 
+**If no separate reviewer is available — you are running `learn` solo:** you still do this step, you just play both sides. Draft the candidates in Step 3, then come back to Step 4 in an explicitly adversarial frame: your job now is to *reject your own drafts*, not defend them. Go candidate by candidate, apply every check below in full (especially the label-fit check), and treat "I already decided this was good in Step 3" as no evidence at all. A solo run that keeps 12 of 12 candidates did not review them. Record which candidates changed outcome between Step 3 and Step 4 — that number is the only real signal that the review happened.
+
 **Two separate questions, not one.** "Is this citation real" and "does this belong under this label" are different judgment calls, and a reviewer moving fast tends to only ask the first. A well-specified proposer prompt already polices citation quality reasonably well on its own — a controlled comparison (`todays-work/week9/wednesday.md`) found a full-auto run's citations as clean as, and on two patterns cleaner than, a human-reviewed one. A follow-up blind test (a fresh reviewer, no hint which candidate to distrust) confirmed the label-fit check catches real things: it independently flagged a candidate labeled `ownership` (a caller-supplied identity header honored only from a verified-local caller) as reading more like `security` next to its only real `ownership` sibling in the repo (a test-substitution pattern for a live credential source) — a genuine, non-obvious mismatch, caught with no worked example to crib from.
 
 **The same test also caught a mistake in this skill's own earlier guidance, which is worth stating plainly rather than quietly fixing.** An earlier version of this section used a local-file atomic-write record filed under `db` as its worked example of a mislabel. It was wrong: `db`'s canonical scope in this project (`core/agents/verify-data.body.md` — the actual defining source, not just whatever one sibling pack happens to show) is explicitly *not* limited to SQL — "a cache, a document store, a checkpointer, anything with its own durability contract" is named in scope, and the label's own guiding question is "does the data survive, exactly once?" An atomic temp-file-then-rename is squarely that. The earlier guidance inferred `db`'s meaning from a single sibling pack that only happened to show SQL examples — under-sampling the label's real scope, the exact mistake this whole check exists to prevent, just one level up. **Check a label's canonical definition in `core/agents/verify-*.body.md` before rejecting a candidate for not matching one sibling pack's narrow sample** — a sibling pack shows *a* usage, not the label's full scope, and treating it as the ceiling repeats this exact error.
 
 So for every candidate, ask explicitly: **does this match the label's canonical definition, and does it read sensibly next to a real sibling if one exists?** Both checks matter; neither alone is sufficient — a sibling-only check can under-sample (as above), and a definition-only check without an example can still misjudge tone/scope. This is the check a citation-verification pass structurally cannot do, and it is the actual reason a human belongs in this loop — treat it as load-bearing, not a nice-to-have on top of citation review.
+
+**When there is no sibling** — a brand-new partner repo, no prior pack under that label anywhere you're allowed to read — the check is definition-only, and the skill just told you that isn't sufficient alone. So raise the bar instead of lowering it: for a would-be *first* record under a label, the canonical definition in `core/agents/verify-*.body.md` has to fit *without stretching* — if you find yourself arguing the pattern "sort of counts" as `contract` or `control-flow`, that's the signal it doesn't. `model/FORMAT.md` §4 is explicit that a real, well-witnessed pattern fitting none of the 15 labels "isn't a record's business" — dropping it is the correct call, not a gap in the pack. The blind test (`todays-work/week9/`, and the week-10 cold run) both had their sharpest catches here: a genuine repo-wide pattern that matched no label's real meaning, which a citation-only or a keep-if-plausible review would have shipped.
 
 Do not move to Step 5 for a candidate still pending a reply — half-reviewed is not accepted.
 
@@ -77,18 +84,36 @@ A citation that fails this is dropped, not patched — re-derive it from the wor
 
 ## Step 6 — Write the accepted records
 
-Append (or create, if no pack exists yet at the target path) the accepted records into the target pack file's `## Label probes` section, in `model/FORMAT.md` §3's exact shape. Leave every other section (`Stack scope prefixes`, `Wiring files`, `Brief probes`, `Dependencies`) to `generate-domain-pack` or a manual pass — `learn`'s scope is label probes, the section where a human's judgment on "is this really a convention" earns its keep; the other five sections are mechanical enough that the auto skill already handles them without a witness-count risk.
+**If the target pack already exists:** append the accepted records into its `## Label probes` section, in `model/FORMAT.md` §3's exact shape, and touch nothing else.
+
+**If you are creating the pack (a repo with no pack yet — the common `learn` case):** you must still emit all six `## ` headings `model/FORMAT.md` §1 requires, or Step 7's `validate-pack.sh` fails the whole file before it ever looks at a record. `learn`'s *judgment* scope is `## Label probes` only — the section where "is this really a convention" is a human call. The other five headings go in as valid stubs, not real content:
+
+- `## Stack scope prefixes` — the one line of prose the format allows (e.g. "Single-stack (Python) — no prefix split"), or a real prefix table if the repo is genuinely multi-stack and you know the split.
+- `## Wiring files` — a **closed** ```` ``` ```` fence (§2). List the hub files Step 2's scan already surfaced, one repo-relative path per line; an empty fenced block is valid if you're unsure.
+- `## Promoted non-defects` — just the heading, nothing under it (§4b: empty is normal).
+- `## Brief probes` — a ```` ```bash ```` fence that passes `bash -n` (§5). A single `:` (no-op) line is a valid stub; do **not** hand-write real probe shell here — that's `generate-domain-pack`'s job and it carries its own `eval`-trust caveat.
+- `## Dependencies` — the heading plus whatever you can read straight off the manifest (`Cargo.toml`/`pyproject.toml` `[dependencies]`), or "None recorded." if you didn't check.
+
+A later `/generate-domain-pack` run fills the stub sections in properly; `learn`'s output is a valid, reviewable pack from the first run, not a fragment that needs a second tool to parse.
 
 **Every record accepted with fewer than 2 witnesses gets `human_approved: true` written into it here** (`model/FORMAT.md` §3d) — this is not optional and not automatic; it is the one concrete trace, in the pack itself, that a person (not the proposer) vouched for that specific record. Forgetting it is a real, silent failure mode: the record fails Step 7's `validate-pack.sh` for a reason ("witnesses < 2") that reads like a citation problem but is actually a missing marker, and re-verifying citations that were already fine wastes the exact effort Step 7's error-handling table warns against. A record the reviewer edited to *supply* a genuine second witness does not need the field — it now has 2 real citations and stands on its own, same as any auto-generated record.
 
 ## Step 7 — Verify format and refresh artifacts
 
 ```bash
-bash model/validate-pack.sh <target-pack> [<repo-root-if-foreign>]
-bash .claude/skills/pr-review/scripts/build-artifacts.sh <BASE>   # only if the target is this repo's own pack
+# For this repo's own pack:
+bash model/validate-pack.sh model/pr-review-domain.md
+bash .claude/skills/pr-review/scripts/build-artifacts.sh <BASE>
+
+# For a partner pack (any repo that isn't this one): the SECOND ARG IS
+# REQUIRED and is the worktree path from Step 1 — not optional. Without it
+# validate-pack.sh resolves every citation against *its own* repo, where
+# none of them exist, and fails the whole pack.
+bash model/validate-pack.sh model/partners/<name>/pr-review-domain.md <tmp>
+# no build-artifacts.sh run for a partner pack — it targets this repo.
 ```
 
-Non-zero exit on either → the write introduced a format problem Step 5's citation check doesn't catch (a malformed `id` slug, a missing required field) — fix the record shape, don't touch the citations again.
+Non-zero exit → the write introduced a format problem Step 5's citation check doesn't catch (a malformed `id` slug, a missing required field, a section heading not emitted per Step 6) — fix the record or heading shape, don't touch the citations again.
 
 ## Step 8 — Remove the worktree (mandatory, verified, never skipped)
 
