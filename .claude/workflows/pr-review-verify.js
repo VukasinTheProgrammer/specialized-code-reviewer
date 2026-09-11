@@ -171,6 +171,16 @@ const domainPackProbes = probesAllText
 const knownNonDefects = knownNonDefectsText
   ? `\nKnown non-defects — patterns a human has already ruled out here, each with\nthe guard that makes it safe (the ledger's own current text, no need to\nopen it yourself). Not a real hypothesis if it matches one of these:\n\n${knownNonDefectsText}\n`
   : ''
+// Same source text, verifier-scoped wording — this was missing entirely
+// until a regression-set replay caught it: a dismissed pattern only ever
+// reached the scout's hypothesis-filtering ("not a real hypothesis"), never
+// a verifier's own prompt, so a pattern the scout correctly declined to
+// raise could still be independently rediscovered and reported by a
+// verifier's own cold sweep (job 1) or while settling a hypothesis (job 2)
+// — the ledger's whole enforcement mechanism was silently half-wired.
+const knownNonDefectsForVerifier = knownNonDefectsText
+  ? `\nKnown non-defects — patterns a human has already ruled out here, each with\nthe guard that makes it safe (the ledger's own current text, no need to\nopen it yourself). Not a real finding — on your own sweep (job 1) or while\nsettling a hypothesis (job 2) — if it matches one of these:\n\n${knownNonDefectsText}\n`
+  : ''
 // Deterministic candidate list from build-artifacts.sh (§1.9) — unchanged files
 // that reference something this diff changed, resolved by word-boundary grep at
 // HEAD. Graph-independent on purpose: `impacted` used to be empty on every
@@ -333,7 +343,7 @@ changed — this diff's own lines don't cover them, so check whether the
 change broke one of them under whichever of your own labels the breakage
 would show up as; empty is normal, not a gap):
 ${impactedText}
-${probes}${governed || ''}
+${probes}${governed || ''}${knownNonDefectsForVerifier}
 diff:      ${patchPath}
 manifest:  ${manifestPath}
 
