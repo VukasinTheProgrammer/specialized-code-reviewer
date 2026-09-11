@@ -23,6 +23,40 @@ ladder and no dismissal list. Findings are merged, deduped, sorted and numbered 
 checked against any accepted baseline (week 11), then persisted so `/explain-bug` can expand any
 of them later.
 
+## The first five minutes
+
+What each step should look like, so you can tell whether you're on track without reading the
+full sections below first.
+
+1. **Copy `.claude/` in** (see Install §1). No output — it's a file copy.
+2. **Run the preflight check.**
+   ```
+   bash .claude/skills/pr-review/scripts/doctor.sh <your-base-branch>
+   ```
+   Expect a line per check, ending in `Every hard requirement is met.` — if you see any
+   `MISSING` line instead, that's the actual blocker, named with its fix; fix it and re-run
+   before going further. A `warn` line (no `graphify`, no pack yet) is fine, not a blocker.
+3. **Generate the domain pack.**
+   ```
+   /generate-domain-pack
+   ```
+   Takes a few minutes — it's working from a scoped worktree, not editing your tree directly.
+   Expect it to finish by naming the pack file it wrote (`model/pr-review-domain.md`) and how
+   many records it found. Zero records on a very small or unusual repo is a real, valid outcome,
+   not a failure — the reviewer still runs, just on generic probes for anything it found nothing
+   to cite.
+4. **Run your first review.**
+   ```
+   /pr-review <your-base-branch>
+   ```
+   Expect either a numbered list of findings, each with a one-line summary, or `No findings.`
+   followed by which slices ran clean — never silence. If it takes noticeably more than a couple
+   of minutes on an ordinary-sized diff, or the output doesn't match either shape above, that's
+   the moment to stop and check `## Troubleshooting` below, not to assume it's still working.
+
+Full detail on every step, including what to do differently for a legacy repo you're
+baselining rather than reviewing fresh, is in `## Install` next.
+
 ## Requirements
 
 **Hard — the reviewer will not run without these:**
@@ -43,6 +77,11 @@ of them later.
 
 ## Install
 
+The only supported path is dropping `.claude/` (plus its two non-`.claude/` dependencies) into
+the target repo — not a separate clone-and-run-a-script flow. One path, one set of instructions
+to keep true; if you want a different shape (a real plugin package, an installer), that is
+`v1.1`'s job, not this one's.
+
 ### 1. Copy `.claude/` into the target repo
 
 ```bash
@@ -57,13 +96,27 @@ non-`.claude/` pieces — `model/` (domain pack, `FORMAT.md`, `validate-pack.sh`
 `model/partners/<name>/` packs) and `eval/` (ledger, regression set) — come across too; the
 skills reference them by repo-relative path.
 
-### 2. Check your base branch
+### 2. Run the preflight check
+
+```bash
+bash .claude/skills/pr-review/scripts/doctor.sh [base]
+```
+
+Checks every prerequisite in the table above and names the fix for whatever's missing — the
+usual tools, bash's own version, whether your base branch actually resolves, `jq` (only needed
+for the `eval/` tooling), `graphify` and the domain pack (both fine either way, reported so you
+know which path you're on). One requirement it cannot check from a shell script: Claude Code
+itself, with skills/subagents/the Workflow tool — named as un-checkable rather than silently
+skipped or faked as a pass. Exits `0` when every hard requirement is met; a `warn` line is an
+optional gap, never a blocker.
+
+### 3. Check your base branch
 
 `/pr-review` defaults to **`dev`**. If your integration branch is `main`, either pass it every time
 (`/pr-review main`) or change the default in
 `.claude/skills/pr-review/scripts/build-artifacts.sh` (`BASE_ARG="${1:-dev}"`).
 
-### 3. Generate the domain pack
+### 4. Generate the domain pack
 
 **This is the step that makes the reviewer good, and it is not optional in practice.**
 
@@ -91,14 +144,14 @@ To pack a repo that isn't the one the `.claude/` lives in, write to
 foreign repo. A pack supplied this way does **not** get its `## Brief probes` shell block `eval`'d
 unless you set `PR_REVIEW_EVAL_BRIEF_PROBES=1` after reading that block — see the env-vars table.
 
-### 4. Run it
+### 5. Run it
 
 ```
 /pr-review              # against dev
 /pr-review main         # against another base
 ```
 
-### 5. (Optional) Wire up graphify
+### 6. (Optional) Wire up graphify
 
 Install graphify — the agent definitions assume the pip package that ships both the `graphify` CLI
 and the `graphify.serve` MCP stdio server — then create an index and register the server in
