@@ -146,7 +146,7 @@ All read by `build-artifacts.sh`.
 | `PR_REVIEW_NO_GRAPH` | unset | `1` skips the graphify refresh entirely (`GRAPH=off`). |
 | `PR_REVIEW_PACK` | `model/pr-review-domain.md` | Use a different domain pack — for testing, or running a foreign repo's pack (`model/partners/<name>/...`). |
 | `PR_REVIEW_EVAL_BRIEF_PROBES` | `0` | `1` permits `eval` of a `PR_REVIEW_PACK`-supplied pack's `## Brief probes` shell block. Off by default: a pack you didn't author is not trusted to run shell. The built-in `model/pr-review-domain.md` is always trusted, no flag needed. `run.env` reports the outcome as `BRIEF_PROBES_TRUSTED`. |
-| `PR_REVIEW_UNIFIED` | `15` | Diff context width for `patch.diff` and `code.diff`. Narrower is cheaper (the patch is ~⅔ of a run's tokens, read by all five spawns) but trades context a verifier needs to see a guard and its return without opening the file — treat a change as a recall question, measured against the corpus, not a taste call. |
+| `PR_REVIEW_UNIFIED` | `8` | Diff context width for `patch.diff` and `code.diff`. Narrower is cheaper (the patch is ~⅔ of a run's tokens, read by all five spawns); moved from 15 to 8 after a corpus replay found no recall loss (`future-improvements/Applied/week-6-diff-context-width.md`) — treat a further change the same way, as a recall question measured against the corpus, not a taste call. |
 | `PR_REVIEW_HEAD` | `HEAD` | Diff `BASE...<sha>` instead of the current HEAD, without checking anything out. Used to replay a historical diff for the regression set. |
 | `PR_REVIEW_LARGE_DIFF` | `2500` | Changed-line threshold for the large-diff warning. A warning only — nothing is ever trimmed. |
 | `PR_REVIEW_KEEP_DAYS` | `7` | Age before a stale `.git/pr-review.*` run directory is pruned. |

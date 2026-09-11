@@ -23,8 +23,9 @@
 #           PR_REVIEW_IMPACTED_CAP=<n>  max impacted-caller candidates to emit (default 24)
 #           PR_REVIEW_MATCH_CAP=<n>  max changed-file lines to emit in candidates.txt (default 40; the
 #                                  per-file candidate cap is a fixed 3, not this knob)
-#           PR_REVIEW_UNIFIED=<n>  diff context width for both patch.diff and code.diff (default 15;
-#                                  future-improvements/week-6-diff-context-width.md's A/B knob)
+#           PR_REVIEW_UNIFIED=<n>  diff context width for both patch.diff and code.diff (default 8;
+#                                  future-improvements/Applied/week-6-diff-context-width.md's A/B knob —
+#                                  moved from 15 after the corpus replay found no recall loss)
 #
 # Writes into a fresh $OUT under .git/:  patch.diff  manifest.txt  brief.txt  wiring.txt
 #   probes-{access,data,answer,structure,all}.txt  known-non-defects.txt
@@ -344,7 +345,7 @@ KEEP_DAYS="${PR_REVIEW_KEEP_DAYS:-7}"
 find "$GIT_DIR" -maxdepth 1 -type d -name 'pr-review.*' -mtime "+$KEEP_DAYS" -exec rm -rf {} + 2>/dev/null
 OUT="$(mktemp -d "$GIT_DIR/pr-review.XXXXXX")" || { echo "error: cannot create run directory under .git/" >&2; exit 5; }
 OUT="$(cd "$OUT" && pwd)"
-UNIFIED="${PR_REVIEW_UNIFIED:-15}"
+UNIFIED="${PR_REVIEW_UNIFIED:-8}"
 git diff "--unified=$UNIFIED" "$BASE...$HEAD_REF" -- . "${EXCLUDES[@]}" > "$OUT/patch.diff"   || { echo "error: cannot write patch.diff" >&2; exit 5; }
 git diff --name-only  "$BASE...$HEAD_REF" -- . "${EXCLUDES[@]}" > "$OUT/manifest.txt" || { echo "error: cannot write manifest.txt" >&2; exit 5; }
 CHANGED=$(git diff --numstat "$BASE...$HEAD_REF" -- . "${EXCLUDES[@]}" | awk '{a+=$1; d+=$2} END {print a+d+0}')
