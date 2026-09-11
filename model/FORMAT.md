@@ -177,8 +177,36 @@ layering, duplication, dead-code, a11y
 A label outside this list isn't an error either — the record is dropped
 from every `probes-*.txt` with a warning on stderr, and it never reaches
 any verifier. If a real pattern doesn't fit one of the 15, it isn't a
-record's business; see `future-improvements/unscoped-label-taxonomy.md` for
-extending the list itself.
+record's business; see `future-improvements/Waiting for decision/week-7-label-taxonomy.md`
+for extending the list itself.
+
+**Each label's scope is defined in exactly one place — the slice's own
+`verify-*.body.md`, not this list.** A label passing membership here says
+nothing about whether it's the *right* label; that reading has bitten this
+project once already (`db.durable-atomic-write` called a mislabel by
+inferring `db`'s scope from a sibling pack's SQL examples instead of
+checking the line below — see
+`future-improvements/Applied/label-scope-defining-source.md`). Before
+labeling or reviewing a label-fit call, read the defining line, not a
+worked example:
+
+| label | slice | defined at |
+|---|---|---|
+| `auth` | access | `core/agents/verify-access.body.md:11` |
+| `ownership` | access | `core/agents/verify-access.body.md:15` |
+| `security` | access | `core/agents/verify-access.body.md:21` |
+| `data-exposure` | access | `core/agents/verify-access.body.md:26` |
+| `db` | data | `core/agents/verify-data.body.md:11` |
+| `concurrency` | data | `core/agents/verify-data.body.md:21` |
+| `logic` | answer | `core/agents/verify-answer.body.md:11` |
+| `validation` | answer | `core/agents/verify-answer.body.md:17` |
+| `control-flow` | answer | `core/agents/verify-answer.body.md:23` |
+| `state` | answer | `core/agents/verify-answer.body.md:31` |
+| `contract` | answer | `core/agents/verify-answer.body.md:37` |
+| `layering` | structure | `core/agents/verify-structure.body.md:11` |
+| `duplication` | structure | `core/agents/verify-structure.body.md:17` |
+| `dead-code` | structure | `core/agents/verify-structure.body.md:21` |
+| `a11y` | structure | `core/agents/verify-structure.body.md:24` |
 
 ## §4b — Promoted non-defects: this repo's own, and only this repo's own
 
