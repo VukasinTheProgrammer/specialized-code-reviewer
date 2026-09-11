@@ -96,6 +96,12 @@ non-`.claude/` pieces — `model/` (domain pack, `FORMAT.md`, `validate-pack.sh`
 `model/partners/<name>/` packs) and `eval/` (ledger, regression set) — come across too; the
 skills reference them by repo-relative path.
 
+`core/` is not part of this list — nothing under `.claude/` opens it at runtime (the generated
+agent files carry their own copy of its content). Bring it along only if you plan to run `/learn`:
+that skill's own instructions point a human at `core/agents/verify-*.body.md` for a label's
+canonical meaning when judging a candidate record, and that file won't exist in the target repo
+otherwise. `/generate-domain-pack` and `/pr-review` never need it.
+
 ### 2. Run the preflight check
 
 ```bash
