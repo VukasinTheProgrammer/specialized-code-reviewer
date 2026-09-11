@@ -71,4 +71,23 @@ check "missing baseline: 0 suppressed" "$(echo "$OUT4" | python3 -c "import json
 check "missing baseline: all 4 findings pass through" "$(echo "$OUT4" | python3 -c "import json,sys; print(len(json.load(sys.stdin)['findings']))")" "4"
 check "missing baseline: baseline_created_at is null" "$(echo "$OUT4" | python3 -c "import json,sys; print(json.load(sys.stdin)['baseline_created_at'])")" "None"
 
+# --- fixture: baseline.json exists but is corrupt — degrades like missing, never crashes ---
+echo '{not valid json' > "$TMP/corrupt-baseline.json"
+OUT5="$(python3 "$BASELINE_PY" apply "$TMP/run2.json" "$TMP/corrupt-baseline.json" 2>"$TMP/corrupt-stderr")"
+check "corrupt baseline exits 0 (degrades, doesn't crash)" "$?" "0"
+check "corrupt baseline: 0 suppressed" "$(echo "$OUT5" | python3 -c "import json,sys; print(json.load(sys.stdin)['suppressed_count'])")" "0"
+check "corrupt baseline: warns on stderr, not silent" "$(grep -c 'not valid JSON' "$TMP/corrupt-stderr")" "1"
+
+# --- fixture: findings.json itself is malformed — this is NOT degradable, exit 1 ---
+echo '{not valid json' > "$TMP/corrupt-findings.json"
+python3 "$BASELINE_PY" apply "$TMP/corrupt-findings.json" "$TMP/baseline.json" >/dev/null 2>"$TMP/findings-stderr"
+check "malformed findings.json exits 1, not 0 or a crash" "$?" "1"
+check "malformed findings.json: error named on stderr" "$(grep -c 'not valid JSON' "$TMP/findings-stderr")" "1"
+
+python3 "$BASELINE_PY" create "$TMP/corrupt-findings.json" "$TMP/x.json" "$TMP/x.md" "abc123" >/dev/null 2>"$TMP/create-stderr"
+check "create() on malformed findings.json also exits 1" "$?" "1"
+
+# --- create() writes atomically: no .baseline-*.tmp survives a clean run ---
+check "no leftover temp file after create" "$(find "$TMP" -maxdepth 1 -name '.baseline-*.tmp' | wc -l | tr -d ' ')" "0"
+
 exit $fail

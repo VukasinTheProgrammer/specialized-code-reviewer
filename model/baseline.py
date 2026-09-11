@@ -13,9 +13,14 @@ usage: baseline.py create <findings.json> <out-json> <out-md> <base-sha>
   debt: writes <out-json> (the fingerprint set `apply` matches against) and
   <out-md> (grouped by label, one line per finding — the browsable form
   week 11 asks for, so existing debt is visible without being in the way).
-  Always exits 0. Overwrites any existing baseline at those paths — this is
-  the explicit "accept everything found so far" step, run deliberately by
-  a person, never invoked as a side effect of a normal review.
+  Both are written to a temp file in the same directory first, then
+  os.replace'd into place — same atomic-publish discipline as everywhere
+  else in this pipeline (`.claude/skills/pr-review/SKILL.md`'s own
+  `mv "$OUT/findings.json" .git/pr-review/findings.json`), so a concurrent
+  reader (a normal run's Step 5.3c) never observes a half-written baseline.
+  Overwrites any existing baseline at those paths — this is the explicit
+  "accept everything found so far" step, run deliberately by a person,
+  never invoked as a side effect of a normal review.
 
 usage: baseline.py apply <findings.json> <baseline.json>
   Splits <findings.json>'s `findings` array into what's new (not in the
@@ -25,11 +30,18 @@ usage: baseline.py apply <findings.json> <baseline.json>
      suppressed_baseline: [...matched entries, unrenumbered...],
      suppressed_count: N,
      baseline_created_at: "...", baseline_base_sha: "..."}
-  A missing <baseline.json> is not an error — no baseline yet is the normal
-  state for a repo that has never run `/pr-review baseline` — and the input
-  findings pass through unchanged (suppressed_count 0, both baseline fields
-  null). Always exits 0; the caller decides what to render, same doctrine
-  as every other check in this pipeline.
+  A missing OR corrupt <baseline.json> is not an error — degrades the same
+  way (findings pass through unchanged, suppressed_count 0, both baseline
+  fields null), same doctrine as this pipeline's other stale/invalid
+  degrades (PACK_INVALID, LEDGER_STALE): never block a review over one bad
+  file, warn on stderr and continue. A corrupt <baseline.json> warns
+  distinctly from a missing one, so the difference is visible without
+  being fatal.
+
+Exit codes: 0 ok (including every degrade above)   1 <findings.json> itself
+is missing or not valid JSON — this is this run's own just-built input, not
+a stale artifact to degrade around, so there is nothing safe to fall back
+to   2 wrong argument count, or a mode that isn't `create`/`apply`
 
 A fingerprint is exact-match only, and that's a known, named limitation,
 not an oversight: a genuinely unrelated line added above a baselined
@@ -40,7 +52,9 @@ domain-pack citations — bounded, not solved, and named here so a future
 reader doesn't mistake the gap for a bug.
 """
 import json
+import os
 import sys
+import tempfile
 from datetime import datetime, timezone
 
 
@@ -48,9 +62,44 @@ def fingerprint(f):
     return f"{f['file']}::{f['line']}::{f['label']}"
 
 
+def write_atomic(path, content):
+    """Write via a same-directory temp file + os.replace, never straight to
+    `path` — the atomic-publish convention this project already holds every
+    other pipeline artifact to (`.claude/skills/pr-review/SKILL.md`'s own
+    `mv "$OUT/findings.json" .git/pr-review/findings.json`). Same directory
+    matters: os.replace is only atomic within one filesystem."""
+    directory = os.path.dirname(os.path.abspath(path)) or "."
+    fd, tmp_path = tempfile.mkstemp(dir=directory, prefix=".baseline-", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(content)
+        os.replace(tmp_path, path)
+    except BaseException:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
+
+
+def load_findings_or_die(findings_path):
+    """<findings.json> is this run's own just-built output (Step 5.1-5.3b),
+    not a stale artifact from a prior run — there is nothing safe to degrade
+    to if it's missing or malformed, unlike a baseline file. Exit 1 with a
+    clear reason on stderr rather than an uncaught traceback."""
+    try:
+        with open(findings_path, encoding="utf-8") as fh:
+            return json.load(fh)
+    except FileNotFoundError:
+        sys.stderr.write(f"error: cannot read '{findings_path}'\n")
+        sys.exit(1)
+    except json.JSONDecodeError as e:
+        sys.stderr.write(f"error: '{findings_path}' is not valid JSON — {e}\n")
+        sys.exit(1)
+
+
 def create(findings_path, out_json_path, out_md_path, base_sha):
-    with open(findings_path, encoding="utf-8") as fh:
-        run = json.load(fh)
+    run = load_findings_or_die(findings_path)
     findings = run.get("findings", [])
 
     entries = {}
@@ -69,9 +118,7 @@ def create(findings_path, out_json_path, out_md_path, base_sha):
         "count": len(entries),
         "findings": entries,
     }
-    with open(out_json_path, "w", encoding="utf-8") as fh:
-        json.dump(baseline, fh, indent=2, sort_keys=True)
-        fh.write("\n")
+    write_atomic(out_json_path, json.dumps(baseline, indent=2, sort_keys=True) + "\n")
 
     by_label = {}
     for entry in entries.values():
@@ -97,8 +144,7 @@ def create(findings_path, out_json_path, out_md_path, base_sha):
             lines.append(f"- `{entry['file']}:{entry['line']}` — {first_sentence}")
         lines.append("")
 
-    with open(out_md_path, "w", encoding="utf-8") as fh:
-        fh.write("\n".join(lines).rstrip("\n") + "\n")
+    write_atomic(out_md_path, "\n".join(lines).rstrip("\n") + "\n")
 
     sys.stderr.write(
         f"baseline: {len(entries)} finding(s) snapshotted from {findings_path} "
@@ -107,14 +153,29 @@ def create(findings_path, out_json_path, out_md_path, base_sha):
 
 
 def apply(findings_path, baseline_path):
-    with open(findings_path, encoding="utf-8") as fh:
-        run = json.load(fh)
+    run = load_findings_or_die(findings_path)
     findings = run.get("findings", [])
 
     try:
         with open(baseline_path, encoding="utf-8") as fh:
             baseline = json.load(fh)
     except FileNotFoundError:
+        print(json.dumps({
+            "findings": findings,
+            "suppressed_baseline": [],
+            "suppressed_count": 0,
+            "baseline_created_at": None,
+            "baseline_base_sha": None,
+        }))
+        return
+    except json.JSONDecodeError as e:
+        # Degrade like any other stale/invalid pipeline artifact (PACK_INVALID,
+        # LEDGER_STALE) — never block a review over one corrupt file. Warned
+        # distinctly from "missing" so the difference is visible, not silent.
+        sys.stderr.write(
+            f"warning: '{baseline_path}' exists but is not valid JSON ({e}) — "
+            f"treating as no baseline this run\n"
+        )
         print(json.dumps({
             "findings": findings,
             "suppressed_baseline": [],
