@@ -13,12 +13,14 @@ Step numbers below are stable — agents, the workflow script and the rationale 
 | `generate-domain-pack` skill | Step 0.2 — how to (re)generate the domain pack. Standalone-invocable, not only from here. |
 | `references/pipeline-internals.md` | What the Workflow script does inside Step 3 and Step 5.1–5.3, and the numbers to watch. |
 | `references/report-format.md` | Step 5.5–5.6 — the exact render templates. |
+| `model/baseline.py` | Step 5.3c and Step 5b — fingerprint, suppress, snapshot (week 11). Run it; don't reimplement the matching in prose. |
 
 ## Usage
 
 ```
 /pr-review              # against dev, the integration branch
 /pr-review main         # against another base
+/pr-review baseline     # snapshot this run's findings as pre-existing debt (week 11) — see Step 5b
 ```
 
 ## Step 0 — Domain pack
@@ -41,11 +43,11 @@ Separately, the script also exact-matches all five of the pack's `## Heading` st
 bash .claude/skills/pr-review/scripts/build-artifacts.sh "${1:-dev}"
 ```
 
-One deterministic script, no model in it. It resolves the base (§1.1), diffs `BASE...HEAD` at 15 lines of context (§1.2–1.3), excludes non-code (§1.4), writes the artifacts into a fresh run-scoped directory (§1.5), derives the stack scope (§2) and assembles the orientation brief (§4). It prints `run.env` and `brief.txt`.
+One deterministic script, no model in it. It resolves the base (§1.1), diffs `BASE...HEAD` at 8 lines of context (§1.2–1.3, `PR_REVIEW_UNIFIED`), excludes non-code (§1.4), writes the artifacts into a fresh run-scoped directory (§1.5), derives the stack scope (§2) and assembles the orientation brief (§4). It prints `run.env` and `brief.txt`.
 
 | Artifact in `$OUT` | Is | Is not |
 |---|---|---|
-| `patch.diff` | The hunks, 15 lines of context | — |
+| `patch.diff` | The hunks, 8 lines of context | — |
 | `manifest.txt` | Changed paths, one per line | File contents |
 | `brief.txt` | Fixed fields, values from grep/awk | Anything a model wrote; anything phrased as a suspicion |
 | `wiring.txt` | The pack's `## Wiring files` block verbatim (empty when no pack, or stale) | A list you invented |
@@ -137,19 +139,31 @@ The workflow script never opens a file — no filesystem access there (see `work
 
 This is the same silent-drop rule as everywhere else in this pipeline: a hallucinated line number is not correctable from here (no re-derivation, no "closest line" guess) — it is dropped, exactly as a malformed or unreachable candidate is.
 
+### 5.3c Suppress baseline matches (week 11) — skipped entirely in baseline mode
+
+**Only for a normal `/pr-review` run.** `/pr-review baseline` (Step 5b) snapshots the full, unsuppressed set instead — running this step there would suppress a finding against the very baseline it's about to become, and the snapshot would silently miss it.
+
+`model/pr-review-baseline.json` may not exist — most repos won't have run `/pr-review baseline` yet, and that's the normal state, not an error. If it does:
+
+```bash
+python3 model/baseline.py apply <(echo "$FINDINGS_JSON") model/pr-review-baseline.json
+```
+
+(`$FINDINGS_JSON` is the object Step 5.1–5.3b produced, after the line-number drop — pass it as the workflow's own `findings` array wrapped in `{"findings": [...]}`, same shape `create` reads.) The result's `findings` (renumbered), `suppressed_baseline`, `suppressed_count`, `baseline_created_at` and `baseline_base_sha` replace the corresponding fields before Step 5.4 persists. A fingerprint match is exact (`file::line::label`) — a line that shifted since the baseline was taken no longer matches and reports again; `model/baseline.py`'s own docstring names this as a known, bounded limitation, not a bug to chase here.
+
 ### 5.4 Persist before rendering — write local, publish atomic
 
-Write the returned object to `$OUT/findings.json` **before printing anything** — even when `findings` is empty, even if rendering then fails. Then:
+Write the returned object (post-5.3c suppression, on a normal run) to `$OUT/findings.json` **before printing anything** — even when `findings` is empty, even if rendering then fails. Then:
 
 ```bash
 mkdir -p .git/pr-review && mv "$OUT/findings.json" .git/pr-review/findings.json
 ```
 
-`.git/pr-review/findings.json` is the one fixed path `/explain-bug` reads. `mv` on one filesystem is atomic; a `test -e` plus a separate write is a race with extra steps. `n` is the sort position — derived, never invented — so the same diff numbers the same defect the same way every run.
+`.git/pr-review/findings.json` is the one fixed path `/explain-bug` reads. `mv` on one filesystem is atomic; a `test -e` plus a separate write is a race with extra steps. `n` is the sort position — derived, never invented — so the same diff numbers the same defect the same way every run. `suppressed_baseline` entries keep whatever `n` (if any) they arrived with from Step 5.1–5.3 and are never renumbered into the visible sequence — they're browsable via `model/pr-review-baseline.md`, not via `/explain-bug`.
 
 ### 5.5 Render
 
-Follow `references/report-format.md` exactly. In short: a numbered index, one line per finding — `[label] file:line` (`· deviates <id>` on the chip, plus a `Guard dropped:` line, when the finding carries `deviates_from` — week 7) and the **first sentence of `failure_mode`, verbatim**; then the closing lines naming what ran, the hypothesis numbers, a `Conventions:` line when the run had a pack, and every `failed` / `degraded` / `slice_mismatch` / `dropped_unreachable` / `dropped_invalid_line` / `hypotheses.dropped` value that is non-zero. Evidence traces are deferred to `/explain-bug <n>`, not dropped.
+Follow `references/report-format.md` exactly. In short: a numbered index, one line per finding — `[label] file:line` (`· deviates <id>` on the chip, plus a `Guard dropped:` line, when the finding carries `deviates_from` — week 7) and the **first sentence of `failure_mode`, verbatim**; then the closing lines naming what ran, the hypothesis numbers, a `Conventions:` line when the run had a pack, and every `failed` / `degraded` / `slice_mismatch` / `dropped_unreachable` / `dropped_invalid_line` / `hypotheses.dropped` value that is non-zero. Evidence traces are deferred to `/explain-bug <n>`, not dropped. When `suppressed_count > 0` (week 11), add a `Baseline: N pre-existing finding(s) suppressed (model/pr-review-baseline.md, created <baseline_created_at>)` line — named, never silent, same rule as every other non-zero count this step reports.
 
 ### 5.6 A clean report names what was checked
 
@@ -163,6 +177,20 @@ Follow `references/report-format.md` exactly. In short: a numbered index, one li
 - **Soften a finding into a dismissal.** There is no dismissal list — a spawn either proved a defect or said nothing, and this step has no third bucket to move an entry into.
 - **Rewrite** a summary line — the first sentence of `failure_mode` renders as it stands; a bad one shows the spawn's gap rather than smoothing it over here.
 - **Edit any file.** Reporting only — fixing a finding is separate work taking `findings.json` as input.
+
+## Step 5b — `/pr-review baseline`: accept everything found so far as debt
+
+Run Steps 0 through 5.3b exactly as a normal review — same diff, same pack, same scout/verify, same line-number validation. **Skip 5.3c entirely** (there is nothing to suppress against yet, or a stale prior baseline that this run is about to replace) and skip 5.5/5.6's report. Instead:
+
+```bash
+python3 model/baseline.py create <(echo "$FINDINGS_JSON") model/pr-review-baseline.json model/pr-review-baseline.md "$HEAD"
+```
+
+(`$FINDINGS_JSON` and `$HEAD` as in 5.3c — the same post-5.3b object, wrapped `{"findings": [...]}`, and `run.env`'s `HEAD`.) This **overwrites** any existing baseline — deliberately: re-running `/pr-review baseline` is how a team re-accepts the current debt after paying some of it down, not an accident to guard against. Still persist to `.git/pr-review/findings.json` (Step 5.4, unsuppressed) so `/explain-bug` can inspect anything in the new baseline the same way it inspects a normal finding.
+
+Print a short summary instead of the normal report: the count snapshotted, the label breakdown, and `model/pr-review-baseline.md` as where to browse them. **Never silently succeed with 0** — 0 findings baselined from a real diff either means the diff was genuinely clean (say so) or something upstream degraded (a failed slice, a missing pack) and this step must name which, not report an empty baseline as a clean one.
+
+`model/pr-review-baseline.json`/`.md` are repo-specific data, committed like `model/pr-review-domain.md` — a baseline that only exists on one machine suppresses nothing for anyone else on the team.
 
 ## Error handling
 

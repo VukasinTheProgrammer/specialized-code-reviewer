@@ -63,6 +63,14 @@ When `hypotheses.dropped` is non-zero, add one more closing line:
 2 hypotheses dropped before reaching a verifier — label outside the closed 15, or outside this repo's stack.
 ```
 
+When `suppressed_count` is non-zero (week 11, `/pr-review baseline` has run before), add one more closing line:
+
+```
+Baseline: 3 pre-existing finding(s) suppressed (model/pr-review-baseline.md, created 2026-09-11T00:00:00Z).
+```
+
+No baseline yet (`model/pr-review-baseline.json` doesn't exist): skip this line entirely, same as every other zero-count closing line in this file — most repos are in this state, and it is not a degrade to name.
+
 `raised` minus `routed` already implies this number, but only to a reader who
 knows to subtract. Name it: a non-zero count on a run whose scope should own
 those labels is the signature of a scout emitting a label that does not exist
