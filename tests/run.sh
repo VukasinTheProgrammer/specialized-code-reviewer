@@ -37,4 +37,10 @@ check "bad-empty-unsafe-when.md" 1
 check "bad-citation-eof.md"      1
 check "bad-citation-range-eof.md" 1
 
+# week 11: Stack scope prefixes (model/FORMAT.md §1b) — found live in
+# model/partners/headroom/pr-review-domain-transforms-py.md: prose that
+# reads correctly to a person parses to zero table rows.
+check "good-single-stack.md"     0
+check "bad-stack-scope-prose.md" 1
+
 exit "$fail"

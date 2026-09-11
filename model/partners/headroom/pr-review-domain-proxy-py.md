@@ -1,5 +1,7 @@
 ## Stack scope prefixes
 
+single-stack: backend
+
 Single-stack scope — `headroom/proxy/` is Python. No per-stack prefix split needed.
 
 ## Wiring files

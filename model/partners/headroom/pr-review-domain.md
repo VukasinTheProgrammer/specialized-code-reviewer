@@ -1,5 +1,7 @@
 ## Stack scope prefixes
 
+single-stack: backend
+
 Single-stack repo under this scope — everything in `crates/` is Rust (2021/2024 edition, workspace-managed). No per-stack prefix split is needed; the five crate roots double as the natural scope boundaries:
 
 - `crates/headroom-core/` — pure transform/compression library, no I/O framework deps.

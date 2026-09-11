@@ -447,13 +447,33 @@ IMPACTED_CANDIDATES="${IMPACTED_CANDIDATES:-0}"
 # ---------- 2 stack scope (path-prefix test) ----------
 BACKEND_PREFIX='^Backend/'; FRONTEND_PREFIX='^Frontend/'; CODE_DIRS=()
 if [ "$PACK_PRESENT" = 1 ]; then
+  STACK_SCOPE_SECTION="$(awk '/^## Stack scope prefixes/{f=1;next} /^## /{f=0} f' "$PACK")"
+  # model/FORMAT.md §1b's single-stack line — a repo with nothing to split
+  # has no table row to give, so this is the only way it can make BE/FE
+  # resolve at all. `.` matches any non-empty manifest line: the pack is
+  # declaring "every changed file is this one stack," not naming a prefix.
+  SINGLE_STACK="$(printf '%s\n' "$STACK_SCOPE_SECTION" | grep -oE '^single-stack:[[:space:]]*(backend|frontend)[[:space:]]*$' | awk -F: '{gsub(/ /,"",$2); print $2}')"
+  case "$SINGLE_STACK" in
+    backend)  BACKEND_PREFIX='.' ;;
+    frontend) FRONTEND_PREFIX='.' ;;
+  esac
   # first backtick token of each row in the "## Stack scope prefixes" table, paired with its stack
   while IFS='|' read -r _ pre stack _; do
     pre="$(printf '%s' "$pre" | grep -oE '`[^`]+`' | head -1 | tr -d '`')"; stack="$(printf '%s' "$stack" | tr -d ' ')"
     [ -z "$pre" ] && continue
     case "$stack" in backend) BACKEND_PREFIX="^$pre";; frontend) FRONTEND_PREFIX="^$pre";; esac
     CODE_DIRS+=("$pre")
-  done < <(awk '/^## Stack scope prefixes/{f=1;next} /^## /{f=0} f' "$PACK" | grep -E '^\|' | grep -vE '^\|[- |]+\|$' | grep -v 'Prefix')
+  done < <(printf '%s\n' "$STACK_SCOPE_SECTION" | grep -E '^\|' | grep -vE '^\|[- |]+\|$' | grep -v 'Prefix')
+  # model/FORMAT.md §1b: neither shape resolved (empty section or
+  # unparseable prose, same failure either way) — the silent degrade to
+  # the hardcoded ^Backend//^Frontend/ defaults, which match this repo's
+  # manifest by coincidence or not at all. validate-pack.sh fails this
+  # outright (§1b: invalid, not merely stale); this warns independently
+  # of that verdict, since BE/FE resolution here runs whether or not the
+  # pack otherwise validated clean.
+  if [ -z "$SINGLE_STACK" ] && [ "${#CODE_DIRS[@]}" -eq 0 ]; then
+    echo "warning: domain pack's '## Stack scope prefixes' section has no parseable table row or single-stack: line (model/FORMAT.md §1b) — BE/FE fall back to the hardcoded Backend//Frontend/ defaults, which may not match this repo at all" >&2
+  fi
 fi
 CODE_DIRS_IS_MANIFEST=0
 if [ "${#CODE_DIRS[@]}" -eq 0 ]; then

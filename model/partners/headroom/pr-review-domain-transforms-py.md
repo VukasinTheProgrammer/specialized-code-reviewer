@@ -1,6 +1,6 @@
 ## Stack scope prefixes
 
-Single stack (Python backend). No prefixes — `SCOPE` resolves `be`.
+single-stack: backend
 
 ## Wiring files
 

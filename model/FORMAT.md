@@ -26,6 +26,44 @@ every extraction below is an `awk` scoped to that exact string, so a miss
 just degrades the whole section to silently empty. `validate-pack.sh` is
 what turns that silence into a named error.
 
+## §1b — Stack scope prefixes: table rows, or the single-stack line
+
+`build-artifacts.sh` derives `BE`/`FE` (which of `ownership`/`db` vs.
+`state`/`a11y` may fire this run) from this section, and it only reads two
+shapes — anything else silently degrades to `BE=0 FE=0` even with a present,
+otherwise-valid pack:
+
+**A multi-stack repo** — one table row per prefix, first backtick token is
+the path prefix, second column its stack:
+
+```
+## Stack scope prefixes
+
+| Prefix | Stack |
+|---|---|
+| `Backend/` | backend |
+| `Frontend/` | frontend |
+```
+
+**A single-stack repo** — no split to make, so no table: one bare line,
+`single-stack: backend` or `single-stack: frontend`, and every changed
+file counts as that stack:
+
+```
+## Stack scope prefixes
+
+single-stack: backend
+```
+
+**A section with neither a valid row nor a valid `single-stack:` line is
+invalid**, not merely stale — free-form prose (however clear it reads to a
+person) parses to nothing, and nothing here is optional the way `##
+Promoted non-defects` legitimately being empty is. `validate-pack.sh`
+checks this directly rather than letting it degrade silently to the
+hardcoded `^Backend/`/`^Frontend/` defaults, which is real evidence for
+one repo, not a fallback: those defaults matching or not matching a given
+repo's manifest is coincidence, not signal.
+
 ## §2 — Wiring files: fenced, closed before the next heading
 
 The `## Wiring files` section holds one fenced block of plain repo-relative

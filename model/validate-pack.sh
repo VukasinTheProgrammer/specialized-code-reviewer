@@ -52,6 +52,18 @@ done <<<"$MISSING_HEADINGS"
 
 # ---- check: Wiring files section has a fenced block, closed before the
 # next heading — the exact shape D1 breaks (build-artifacts.sh's own
+# ---- check: Stack scope prefixes resolves to at least one table row or a
+# single-stack: line (model/FORMAT.md §1b) — anything else (empty, or prose
+# that reads fine to a person but matches neither shape) is invalid, not
+# merely stale: build-artifacts.sh silently falls back to the hardcoded
+# ^Backend//^Frontend/ defaults in exactly this case, which is coincidence
+# for a given repo's manifest, never a real signal. ----
+STACK_SCOPE_ROWS=$(awk '/^## Stack scope prefixes/{f=1;next} /^## /{f=0} f' "$PACK" | grep -E '^\|' | grep -vE '^\|[- |]+\|$' | grep -vc 'Prefix')
+STACK_SCOPE_SINGLE=$(awk '/^## Stack scope prefixes/{f=1;next} /^## /{f=0} f' "$PACK" | grep -cE '^single-stack:[[:space:]]*(backend|frontend)[[:space:]]*$')
+if [ "$STACK_SCOPE_ROWS" -eq 0 ] && [ "$STACK_SCOPE_SINGLE" -eq 0 ]; then
+  fail "Stack scope prefixes: no parseable table row and no single-stack: backend|frontend line (model/FORMAT.md §1b)"
+fi
+
 # extraction resets on the next fence, not the next heading, so an unclosed
 # fence there swallows everything up to the next ```) ----
 WIRING_FENCES=$(awk '/^## Wiring files/{f=1;next} /^## /{f=0} f' "$PACK" | grep -c '^```')
