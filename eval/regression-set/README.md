@@ -65,6 +65,20 @@ bash .claude/skills/pr-review/scripts/check-regression-case.sh <case.json> <find
 findings.json built from a different base/head (`NOT COMPARABLE`, exit 2)
 rather than silently reporting a false pass or fail.
 
+## Retiring a case
+
+A case can stop being able to pass for reasons that have nothing to do
+with review quality — most concretely, a diff old enough that today's
+domain pack's own citations no longer resolve against that historical
+tree, degrading every probe to empty regardless of what the pipeline's
+prompts say (`retired/README.md` has a worked example). When a `FAIL`
+traces to that instead of a real regression, move the case file from
+`cases/` to `retired/` with a note explaining why — `run-regression-set.sh`
+only globs `cases/`, so a retired case stops being re-run without being
+silently deleted. Never retire a case just because it's inconvenient to
+fix; retiring is for a case that is structurally unable to pass, not one
+that's merely still failing.
+
 ## Reading the set
 
 Once the set is large enough to argue from (10+ accumulated cases), open

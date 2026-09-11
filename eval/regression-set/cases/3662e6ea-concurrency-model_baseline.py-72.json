@@ -1,0 +1,12 @@
+{
+  "id": "3662e6ea-concurrency-model_baseline.py-72",
+  "base": "4337ba8",
+  "head": "3662e6eac7e132785ca7cc0123af7977ce77ed99",
+  "added": "2026-09-11",
+  "finding": {
+    "label": "concurrency",
+    "file": "model/baseline.py",
+    "line": 72,
+    "failure_mode": "create() writes model/pr-review-baseline.json straight to its final shared path via open(path,'w') with no mktemp+rename; a concurrent apply() (e.g. a normal /pr-review's Step 5.3c racing a /pr-review baseline run) reads a truncated JSON document mid-write instead of either the old or new complete baseline."
+  }
+}
