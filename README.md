@@ -157,7 +157,17 @@ unless you set `PR_REVIEW_EVAL_BRIEF_PROBES=1` after reading that block — see 
 /pr-review main         # against another base
 ```
 
-### 6. (Optional) Wire up graphify
+### 6. (Optional) Activate a license key
+
+```bash
+bash .claude/skills/pr-review/scripts/activate-license.sh "you@example.com"
+```
+
+Not required, and not enforcement — `LICENSE-KEY.md` says why honestly: a
+plain file copy has nothing real to check a key against. `doctor.sh` reports
+whether it's present; absence only ever warns.
+
+### 7. (Optional) Wire up graphify
 
 Install graphify — the agent definitions assume the pip package that ships both the `graphify` CLI
 and the `graphify.serve` MCP stdio server — then create an index and register the server in

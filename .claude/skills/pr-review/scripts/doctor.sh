@@ -111,6 +111,16 @@ else
   warn "model/pr-review-domain.md not found — /pr-review still runs generic, uncited probes; /generate-domain-pack or /learn is the step that makes findings actually cite your own code"
 fi
 
+# ---- neither hard nor optional, same as the pack check above: an honor-
+# system marker (LICENSE-KEY.md), never enforced — absence never fails
+# this or anything else ----
+echo
+if [ -f ".precedent-license" ]; then
+  ok ".precedent-license present ($(head -1 .precedent-license 2>/dev/null))"
+else
+  warn ".precedent-license not found — not required, see LICENSE-KEY.md; bash .claude/skills/pr-review/scripts/activate-license.sh <name-or-email> to write one"
+fi
+
 echo
 if [ "$FAIL" = 1 ]; then
   echo "One or more hard requirements are missing — fix the MISSING lines above before running /pr-review."

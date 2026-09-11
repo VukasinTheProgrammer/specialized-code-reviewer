@@ -66,4 +66,14 @@ check "missing hard tools: jq absence only warns (optional)" "$(echo "$NOTOOLS_O
 # --- the un-checkable line is always printed, never silently skipped ---
 check "clean repo: names the un-checkable Claude Code requirement" "$(echo "$CLEAN_OUT" | grep -c 'cannot check   Claude Code')" "1"
 
+# --- license key: warns when absent, never fails; ok and shows the line when present ---
+check "clean repo: no .precedent-license warns, doesn't fail" "$(echo "$CLEAN_OUT" | grep -c 'warn.*\.precedent-license not found')" "1"
+ACTIVATE="$ROOT/.claude/skills/pr-review/scripts/activate-license.sh"
+(cd "$TMP" && bash "$ACTIVATE" "tester@example.com" >/dev/null)
+LICENSED_OUT="$(cd "$TMP" && bash "$DOCTOR" base 2>&1 </dev/null)"
+LICENSED_RC=$?
+check "with .precedent-license: still exits 0" "$LICENSED_RC" "0"
+check "with .precedent-license: ok line names it" "$(echo "$LICENSED_OUT" | grep -c 'ok.*\.precedent-license present (licensed-to: tester@example.com)')" "1"
+rm -f "$TMP/.precedent-license"
+
 exit "$fail"
