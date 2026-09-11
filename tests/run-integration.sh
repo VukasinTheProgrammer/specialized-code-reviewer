@@ -274,4 +274,40 @@ else
   fail=1
 fi
 
+# ---- D13 (week 12): stack-scope prefix matching is literal, not regex —
+# future-improvements/Applied/week-12-stack-prefix-grep-regex.md's
+# reproduced bug. A pack-authored prefix used to be interpolated into
+# `grep -qE`, so an unescaped `.` in it (e.g. this repo's own
+# `.claude/skills/`) matched any character — a manifest path differing
+# from the real prefix by exactly one character at that position (a
+# lookalike directory, a typo) wrongly flipped BE, gating whether
+# ownership/db/state/a11y labels could fire at all on a run that never
+# touched the real prefix. Two throwaway repos, same pack
+# (`.claude/skills/` -> backend), differing only in which directory the
+# one changed file sits in. ----
+D13_TMP="$(mktemp -d)"
+(
+  cd "$D13_TMP"
+  git init -q
+  git config user.email test@test.com
+  git config user.name test
+  mkdir -p .claude/skills Xclaude/skills
+  echo "# readme" > README.md
+  echo "MIT" > LICENSE
+  echo "*.log" > .gitignore
+  git add -A && git commit -q -m init
+  git branch base HEAD
+  echo "def f(): pass" > Xclaude/skills/foo.py
+  git add -A && git commit -q -m "change in a lookalike dir, not the real prefix"
+)
+D13_COLLISION="$(cd "$D13_TMP" && PR_REVIEW_PACK="$PACKS/good.md" PR_REVIEW_NO_GRAPH=1 \
+  bash "$SCRIPTS/build-artifacts.sh" base 2>&1 | grep -E '^BE=')"
+rm -rf "$D13_TMP"
+if [ "$D13_COLLISION" = 'BE=0' ]; then
+  echo "ok   D13: a lookalike-directory path (Xclaude/skills/) does not cross-match the real .claude/skills/ prefix"
+else
+  echo "FAIL D13: expected BE=0 for a change outside the real prefix, got $D13_COLLISION"
+  fail=1
+fi
+
 exit "$fail"

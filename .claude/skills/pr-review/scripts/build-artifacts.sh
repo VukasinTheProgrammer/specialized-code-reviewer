@@ -445,28 +445,43 @@ IMPACTED_CANDIDATES=$(grep -c . "$OUT/impacted-candidates.txt" 2>/dev/null || tr
 IMPACTED_CANDIDATES="${IMPACTED_CANDIDATES:-0}"
 
 # ---------- 2 stack scope (path-prefix test) ----------
-BACKEND_PREFIX='^Backend/'; FRONTEND_PREFIX='^Frontend/'; CODE_DIRS=()
+# Literal-prefix match via awk's index(), not grep -qE — a pack-authored
+# prefix interpolated into a regex treats any `.`/`*`/etc. in the path as a
+# metacharacter, so e.g. `.claude/skills/` (this repo's own prefix) as
+# `grep -qE '^.claude/skills/'` matches a manifest line like
+# `Xclaude/skills/foo.py` too, wrongly flipping BE/FE — the same bug class
+# path_exists() above already fixed for citation/line-count checks
+# (future-improvements/Waiting for decision/week-12-stack-prefix-grep-regex.md,
+# reproduced and confirmed there before this fix).
+manifest_has_prefix() {  # $1 = literal prefix; matches at line start only
+  awk -v p="$1" 'index($0,p)==1{f=1} END{exit !f}' "$OUT/manifest.txt"
+}
+BACKEND_PREFIX='Backend/'; FRONTEND_PREFIX='Frontend/'
+BACKEND_MATCH_ALL=0; FRONTEND_MATCH_ALL=0
+CODE_DIRS=()
 if [ "$PACK_PRESENT" = 1 ]; then
   STACK_SCOPE_SECTION="$(awk '/^## Stack scope prefixes/{f=1;next} /^## /{f=0} f' "$PACK")"
   # model/FORMAT.md §1b's single-stack line — a repo with nothing to split
   # has no table row to give, so this is the only way it can make BE/FE
-  # resolve at all. `.` matches any non-empty manifest line: the pack is
-  # declaring "every changed file is this one stack," not naming a prefix.
+  # resolve at all. The *_MATCH_ALL flags, not a sentinel prefix value —
+  # under literal-prefix matching a value like "." only matches paths that
+  # literally start with a dot, so "match everything" needs its own flag,
+  # not a regex metacharacter repurposed as one.
   SINGLE_STACK="$(printf '%s\n' "$STACK_SCOPE_SECTION" | grep -oE '^single-stack:[[:space:]]*(backend|frontend)[[:space:]]*$' | awk -F: '{gsub(/ /,"",$2); print $2}')"
   case "$SINGLE_STACK" in
-    backend)  BACKEND_PREFIX='.' ;;
-    frontend) FRONTEND_PREFIX='.' ;;
+    backend)  BACKEND_MATCH_ALL=1 ;;
+    frontend) FRONTEND_MATCH_ALL=1 ;;
   esac
   # first backtick token of each row in the "## Stack scope prefixes" table, paired with its stack
   while IFS='|' read -r _ pre stack _; do
     pre="$(printf '%s' "$pre" | grep -oE '`[^`]+`' | head -1 | tr -d '`')"; stack="$(printf '%s' "$stack" | tr -d ' ')"
     [ -z "$pre" ] && continue
-    case "$stack" in backend) BACKEND_PREFIX="^$pre";; frontend) FRONTEND_PREFIX="^$pre";; esac
+    case "$stack" in backend) BACKEND_PREFIX="$pre";; frontend) FRONTEND_PREFIX="$pre";; esac
     CODE_DIRS+=("$pre")
   done < <(printf '%s\n' "$STACK_SCOPE_SECTION" | grep -E '^\|' | grep -vE '^\|[- |]+\|$' | grep -v 'Prefix')
   # model/FORMAT.md §1b: neither shape resolved (empty section or
   # unparseable prose, same failure either way) — the silent degrade to
-  # the hardcoded ^Backend//^Frontend/ defaults, which match this repo's
+  # the hardcoded Backend//Frontend/ defaults, which match this repo's
   # manifest by coincidence or not at all. validate-pack.sh fails this
   # outright (§1b: invalid, not merely stale); this warns independently
   # of that verdict, since BE/FE resolution here runs whether or not the
@@ -486,8 +501,10 @@ if [ "${#CODE_DIRS[@]}" -eq 0 ]; then
   # that file's diff would silently vanish from code.diff.
   grep -qv '/' "$OUT/manifest.txt" || CODE_DIRS_IS_MANIFEST=1
 fi
-grep -qE "$BACKEND_PREFIX"  "$OUT/manifest.txt" && BE=1 || BE=0
-grep -qE "$FRONTEND_PREFIX" "$OUT/manifest.txt" && FE=1 || FE=0
+if [ "$BACKEND_MATCH_ALL" = 1 ]; then BE=1
+else manifest_has_prefix "$BACKEND_PREFIX" && BE=1 || BE=0; fi
+if [ "$FRONTEND_MATCH_ALL" = 1 ]; then FE=1
+else manifest_has_prefix "$FRONTEND_PREFIX" && FE=1 || FE=0; fi
 if   [ "$BE" = 1 ] && [ "$FE" = 1 ]; then SCOPE=both
 elif [ "$BE" = 1 ];                  then SCOPE=backend
 elif [ "$FE" = 1 ];                  then SCOPE=frontend
