@@ -43,4 +43,10 @@ check "bad-citation-range-eof.md" 1
 check "good-single-stack.md"     0
 check "bad-stack-scope-prose.md" 1
 
+# week 12: single-stack: both — found live in this repo's own
+# model/pr-review-domain.md: an empty table plus prose claiming "SCOPE
+# resolves both" that build-artifacts.sh never actually implemented,
+# silently degrading BE/FE to 0/0 (SCOPE=neither) instead.
+check "good-single-stack-both.md" 0
+
 exit "$fail"

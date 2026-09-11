@@ -59,7 +59,7 @@ done <<<"$MISSING_HEADINGS"
 # ^Backend//^Frontend/ defaults in exactly this case, which is coincidence
 # for a given repo's manifest, never a real signal. ----
 STACK_SCOPE_ROWS=$(awk '/^## Stack scope prefixes/{f=1;next} /^## /{f=0} f' "$PACK" | grep -E '^\|' | grep -vE '^\|[- |]+\|$' | grep -vc 'Prefix')
-STACK_SCOPE_SINGLE=$(awk '/^## Stack scope prefixes/{f=1;next} /^## /{f=0} f' "$PACK" | grep -cE '^single-stack:[[:space:]]*(backend|frontend)[[:space:]]*$')
+STACK_SCOPE_SINGLE=$(awk '/^## Stack scope prefixes/{f=1;next} /^## /{f=0} f' "$PACK" | grep -cE '^single-stack:[[:space:]]*(backend|frontend|both)[[:space:]]*$')
 if [ "$STACK_SCOPE_ROWS" -eq 0 ] && [ "$STACK_SCOPE_SINGLE" -eq 0 ]; then
   fail "Stack scope prefixes: no parseable table row and no single-stack: backend|frontend line (model/FORMAT.md §1b)"
 fi

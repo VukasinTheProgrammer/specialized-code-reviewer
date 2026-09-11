@@ -310,4 +310,34 @@ else
   fail=1
 fi
 
+# ---- D14 (week 12): `single-stack: both` actually resolves BE=1/FE=1 —
+# found live in this repo's own model/pr-review-domain.md, which shipped
+# with an empty Stack scope prefixes table and prose claiming "SCOPE
+# resolves both" that build-artifacts.sh never implemented; every real
+# run against this repo's own pack silently got BE=0/FE=0 (SCOPE=neither)
+# instead, since an empty table with no explicit signal fell through to
+# the hardcoded Backend//Frontend/ defaults, which match nothing here. ----
+D14_TMP="$(mktemp -d)"
+(
+  cd "$D14_TMP"
+  git init -q
+  git config user.email test@test.com
+  git config user.name test
+  echo "# readme" > README.md
+  git add -A && git commit -q -m init
+  echo two >> README.md
+  git add -A && git commit -q -m change
+  git branch base HEAD~1
+)
+D14_BOTH="$(cd "$D14_TMP" && PR_REVIEW_PACK="$PACKS/good-single-stack-both.md" PR_REVIEW_NO_GRAPH=1 \
+  bash "$SCRIPTS/build-artifacts.sh" base 2>&1 | grep -E '^(BE|FE)=')"
+rm -rf "$D14_TMP"
+if printf '%s\n' "$D14_BOTH" | grep -qxF 'BE=1' && printf '%s\n' "$D14_BOTH" | grep -qxF 'FE=1'; then
+  echo "ok   D14: single-stack: both resolves BE=1 and FE=1"
+else
+  echo "FAIL D14: expected BE=1 and FE=1 from single-stack: both, got:"
+  printf '%s\n' "$D14_BOTH" | sed 's/^/       /'
+  fail=1
+fi
+
 exit "$fail"

@@ -29,13 +29,7 @@ manifest.
 
 ## Stack scope prefixes
 
-Path prefixes used by `SKILL.md` §2 to compute `SCOPE` and to gate which
-labels can fire (`ownership`/`db` need `backend`; `state`/`a11y` need
-`frontend`). Leave this table empty for a single-stack repo — `SCOPE`
-resolves `both` — or fill in one row per stack:
-
-| Prefix | Stack |
-|---|---|
+single-stack: both
 
 ## Wiring files
 

@@ -26,12 +26,12 @@ every extraction below is an `awk` scoped to that exact string, so a miss
 just degrades the whole section to silently empty. `validate-pack.sh` is
 what turns that silence into a named error.
 
-## §1b — Stack scope prefixes: table rows, or the single-stack line
+## §1b — Stack scope prefixes: table rows, or a `single-stack:` line
 
 `build-artifacts.sh` derives `BE`/`FE` (which of `ownership`/`db` vs.
-`state`/`a11y` may fire this run) from this section, and it only reads two
-shapes — anything else silently degrades to `BE=0 FE=0` even with a present,
-otherwise-valid pack:
+`state`/`a11y` may fire this run) from this section, and it only reads
+these shapes — anything else silently degrades to `BE=0 FE=0` even with a
+present, otherwise-valid pack:
 
 **A multi-stack repo** — one table row per prefix, first backtick token is
 the path prefix, second column its stack:
@@ -45,9 +45,9 @@ the path prefix, second column its stack:
 | `Frontend/` | frontend |
 ```
 
-**A single-stack repo** — no split to make, so no table: one bare line,
-`single-stack: backend` or `single-stack: frontend`, and every changed
-file counts as that stack:
+**A repo with exactly one real stack** — no split to make, so no table:
+one bare line, `single-stack: backend` or `single-stack: frontend`, and
+every changed file counts as that stack:
 
 ```
 ## Stack scope prefixes
@@ -55,10 +55,27 @@ file counts as that stack:
 single-stack: backend
 ```
 
-**A section with neither a valid row nor a valid `single-stack:` line is
-invalid**, not merely stale — free-form prose (however clear it reads to a
-person) parses to nothing, and nothing here is optional the way `##
-Promoted non-defects` legitimately being empty is. `validate-pack.sh`
+**A repo with no backend/frontend split to speak of at all** — a CLI,
+library, or tool repo with no multi-tenant `ownership`/`db` surface and no
+UI for `state`/`a11y` to apply to, so gating by stack would only ever
+suppress hypotheses, never usefully narrow them: `single-stack: both`.
+Every label is available; nothing is gated by `BE`/`FE`.
+
+```
+## Stack scope prefixes
+
+single-stack: both
+```
+
+Reach for `both` only when the repo genuinely has no stack split at all —
+not as a shortcut past writing real prefixes for a repo that does have
+one. This project's own `model/pr-review-domain.md` uses it: no separate
+frontend, no multi-tenant data model, so nothing to gate.
+
+**A section with none of these — no valid row, no valid `single-stack:`
+line — is invalid**, not merely stale — free-form prose (however clear it
+reads to a person) parses to nothing, and nothing here is optional the
+way `## Promoted non-defects` legitimately being empty is. `validate-pack.sh`
 checks this directly rather than letting it degrade silently to the
 hardcoded `^Backend/`/`^Frontend/` defaults, which is real evidence for
 one repo, not a fallback: those defaults matching or not matching a given

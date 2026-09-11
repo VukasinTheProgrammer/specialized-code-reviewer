@@ -467,10 +467,20 @@ if [ "$PACK_PRESENT" = 1 ]; then
   # under literal-prefix matching a value like "." only matches paths that
   # literally start with a dot, so "match everything" needs its own flag,
   # not a regex metacharacter repurposed as one.
-  SINGLE_STACK="$(printf '%s\n' "$STACK_SCOPE_SECTION" | grep -oE '^single-stack:[[:space:]]*(backend|frontend)[[:space:]]*$' | awk -F: '{gsub(/ /,"",$2); print $2}')"
+  SINGLE_STACK="$(printf '%s\n' "$STACK_SCOPE_SECTION" | grep -oE '^single-stack:[[:space:]]*(backend|frontend|both)[[:space:]]*$' | awk -F: '{gsub(/ /,"",$2); print $2}')"
   case "$SINGLE_STACK" in
-    backend)  BACKEND_MATCH_ALL=1 ;;
+    backend) BACKEND_MATCH_ALL=1 ;;
     frontend) FRONTEND_MATCH_ALL=1 ;;
+    both)
+      # model/FORMAT.md §1b: a repo with no backend/frontend split at
+      # all (no ownership/db surface, no UI) — gate nothing, every label
+      # is available. Distinct from a bare empty table (which this
+      # project's own pack used to be, before this line existed): an
+      # empty section with no explicit signal is indistinguishable from
+      # unparsed prose that meant to say something else, which is
+      # exactly the failure this whole section exists to catch — "both"
+      # has to be said, never inferred from silence.
+      BACKEND_MATCH_ALL=1; FRONTEND_MATCH_ALL=1 ;;
   esac
   # first backtick token of each row in the "## Stack scope prefixes" table, paired with its stack
   while IFS='|' read -r _ pre stack _; do
