@@ -237,6 +237,32 @@ one exception is the baseline (week 11): `model/pr-review-baseline.json`/`.md` l
 tree on purpose, alongside `model/pr-review-domain.md` — a baseline on only one machine suppresses
 nothing for the rest of the team.
 
+## Limitations
+
+Stated honestly, up front, rather than discovered on run two.
+
+- **The baseline fingerprint drifts with unrelated churn.** `model/baseline.py` matches
+  `file::line::label` exactly. Measured, not hypothetical: on a real 23-commit window
+  (`headroom/transforms/`, 3 baselined findings), **only 1 of 3 (33%) still fingerprint-matched
+  at real HEAD** — the other two drifted off their original line from ordinary commits that never
+  touched the underlying defect, one after a single unrelated commit. Drift tracked file
+  churn/size, not anything about the finding itself. That's one honest data point (n=3, one file
+  subtree, one repo's commit pattern), not a general decay rate — see
+  `eval/week-11-baseline-reappearance.md` for the full method and scope caveats. A reappeared
+  finding after real work on the file is expected, not a bug.
+- **A pack you didn't author gets a degraded brief, on purpose.** A `PR_REVIEW_PACK` pointing at a
+  foreign pack does not get its `## Brief probes` block `eval`'d — `brief.txt` falls back to
+  presence-only fields with a visible `note:` line, until you read that block and set
+  `PR_REVIEW_EVAL_BRIEF_PROBES=1`. Worse output in exchange for never running shell nobody read,
+  and it fails *visibly* rather than let missing fields read as "nothing matched." The built-in
+  pack is always trusted; only a foreign one is degraded by default.
+- **It reviews changes, not codebases.** The baseline is built by snapshotting one run's findings,
+  not by auditing the repo — it learns what's already there by watching, never by scanning
+  everything up front.
+- **What it doesn't do:** no duplication detection, no invariants, no layer map, no drift
+  detection beyond the baseline mechanism above. These are cut, not planned-and-missing.
+- **bash 3.2, macOS and Linux.** No Windows without WSL — see `## Requirements`.
+
 ## Troubleshooting
 
 | Symptom | Meaning | Fix |
